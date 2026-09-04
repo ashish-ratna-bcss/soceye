@@ -8,6 +8,7 @@ const rankingService = require('../services/rankingService');
 const googleAiModeService = require('../services/googleAiModeService');
 const urlParserService = require('../services/urlParserService');
 const globalSearchService = require('../services/globalSearchService');
+const { escapeRegex } = require('../utils/escapeRegex');
 const Source = require('../models/Source');
 const Content = require('../models/Content');
 const SearchHistory = require('../models/SearchHistory');
@@ -1083,7 +1084,7 @@ async function fetchPostByUrl(req, res) {
                 if (postData.author_handle) {
                     sourceData = await Source.findOne({
                         platform: 'x',
-                        identifier: { $regex: new RegExp(`^@?${postData.author_handle}$`, 'i') }
+                        identifier: { $regex: new RegExp(`^@?${escapeRegex(postData.author_handle)}$`, 'i') }
                     });
                 }
             } else if (errorMessages.length > 0) {
@@ -1152,8 +1153,8 @@ async function fetchPostByUrl(req, res) {
                         sourceData = await Source.findOne({
                             platform: 'facebook',
                             $or: [
-                                { identifier: { $regex: authorHandle, $options: 'i' } },
-                                { identifier: { $regex: pageDetails.id, $options: 'i' } }
+                                { identifier: { $regex: escapeRegex(authorHandle), $options: 'i' } },
+                                { identifier: { $regex: escapeRegex(String(pageDetails.id)), $options: 'i' } }
                             ]
                         });
                     }

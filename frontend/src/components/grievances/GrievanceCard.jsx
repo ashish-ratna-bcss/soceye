@@ -673,7 +673,7 @@ const XLayout = ({ grievance, getProxiedMediaUrl, onAction, downloadState = {}, 
     };
     const openOriginal = () => {
         const url = grievance.tweet_url || grievance.url;
-        if (url) window.open(url, '_blank');
+        if (url) window.open(url, '_blank', 'noopener,noreferrer');
         else openDetails();
     };
 

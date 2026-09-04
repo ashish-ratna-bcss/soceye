@@ -219,7 +219,7 @@ const openWhatsAppGroupShare = async (text) => {
         toast.error('Unable to copy message. Please copy manually.');
     }
 
-    window.open(WHATSAPP_GROUP_LINK, '_blank');
+    window.open(WHATSAPP_GROUP_LINK, '_blank', 'noopener,noreferrer');
 
     if (finalText) {
         toast.success('Message copied. Paste it into the WhatsApp group.');
@@ -1822,7 +1822,7 @@ export const VideoPlayer = ({ url, preview, type, autoPlay = false, onError, fal
                                 className="h-7 px-3 bg-white/10 border-white/20 hover:bg-white/20 text-white text-[10px] uppercase tracking-wider font-bold mt-2"
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    window.open(contentUrl, '_blank');
+                                    window.open(contentUrl, '_blank', 'noopener,noreferrer');
                                 }}
                             >
                                 {String(platform || '').toLowerCase() === 'instagram' ? (
@@ -1980,7 +1980,7 @@ const ImageWithFallback = ({ src, fallbackUrls = [], alt = '', className = '', p
                         size="sm"
                         variant="secondary"
                         className="h-7 px-3 bg-background/80 hover:bg-background border-border text-[9px] uppercase tracking-widest font-black mt-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => { e.stopPropagation(); window.open(contentUrl, '_blank'); }}
+                        onClick={(e) => { e.stopPropagation(); window.open(contentUrl, '_blank', 'noopener,noreferrer'); }}
                     >
                         {String(platform || '').toLowerCase() === 'instagram' ? (
                             <Instagram className="w-3 h-3 mr-1 text-[#E4405F]" />
@@ -1990,7 +1990,7 @@ const ImageWithFallback = ({ src, fallbackUrls = [], alt = '', className = '', p
                         View Source
                     </Button>
                 )}
-                {['facebook', 'instagram'].includes(String(platform || '').toLowerCase()) && contentUrl && <div className="absolute inset-0 cursor-pointer" onClick={() => window.open(contentUrl, '_blank')} />}
+                {['facebook', 'instagram'].includes(String(platform || '').toLowerCase()) && contentUrl && <div className="absolute inset-0 cursor-pointer" onClick={() => window.open(contentUrl, '_blank', 'noopener,noreferrer')} />}
             </div>
         );
     }
@@ -3565,9 +3565,9 @@ export const TwitterAlertCard = ({ alert, content, source, onResolve, onAddSourc
 
         const isUrl = /^https?:\/\//i.test(handle);
         if (platform === 'instagram') {
-            window.open(isUrl ? handle : `https://www.instagram.com/${sanitizedHandle}/`, '_blank');
+            window.open(isUrl ? handle : `https://www.instagram.com/${sanitizedHandle}/`, '_blank', 'noopener,noreferrer');
         } else if (platform === 'facebook') {
-            window.open(isUrl ? handle : `https://www.facebook.com/${sanitizedHandle}`, '_blank');
+            window.open(isUrl ? handle : `https://www.facebook.com/${sanitizedHandle}`, '_blank', 'noopener,noreferrer');
         } else {
             navigate(`/x-monitor?handle=${sanitizedHandle}`);
         }
@@ -3618,7 +3618,7 @@ export const TwitterAlertCard = ({ alert, content, source, onResolve, onAddSourc
             return;
         }
         if (cardOpenUrl) {
-            window.open(cardOpenUrl, '_blank');
+            window.open(cardOpenUrl, '_blank', 'noopener,noreferrer');
         }
     };
 
@@ -3893,7 +3893,7 @@ export const TwitterAlertCard = ({ alert, content, source, onResolve, onAddSourc
                                         onClick={(e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
-                                            window.open(`/reports/generate/${alert.id}`, '_blank');
+                                            window.open(`/reports/generate/${alert.id}`, '_blank', 'noopener,noreferrer');
                                         }}
                                         className="text-xs font-medium text-destructive hover:text-destructive/80 flex items-center gap-1 z-20 p-1.5 rounded-md hover:bg-destructive/10 transition-colors"
                                     >
@@ -4296,7 +4296,7 @@ export const TwitterAlertCard = ({ alert, content, source, onResolve, onAddSourc
                     {/* Quoted Tweet */}
                     {content?.quoted_content && (
                         <div className="mb-3 rounded-md border border-border overflow-hidden hover:bg-muted/30 transition-colors cursor-pointer"
-                            onClick={(e) => { e.stopPropagation(); window.open(`https://x.com/${content.quoted_content.author_handle}`, '_blank'); }}>
+                            onClick={(e) => { e.stopPropagation(); window.open(`https://x.com/${content.quoted_content.author_handle}`, '_blank', 'noopener,noreferrer'); }}>
 
                             <div className="p-3">
                                 <div className="flex items-center gap-1 mb-1">
@@ -4996,7 +4996,7 @@ export const YoutubeAlertCard = ({ alert, content, source, onResolve, onAddSourc
                                         onClick={(e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
-                                            window.open(`/reports/generate/${alert.id}`, '_blank');
+                                            window.open(`/reports/generate/${alert.id}`, '_blank', 'noopener,noreferrer');
                                         }}
                                         className="text-xs font-medium text-destructive hover:text-destructive/80 flex items-center gap-1 z-20 p-1.5 rounded-md hover:bg-destructive/10 transition-colors"
                                     >
@@ -5248,7 +5248,7 @@ export const YoutubeAlertCard = ({ alert, content, source, onResolve, onAddSourc
                             />
                         )}
 
-                        {youtubeFallbackLevel === 1 && (youtubeEmbedUrl || mediaUrl) && (
+                        {youtubeFallbackLevel === 1 && (youtubeEmbedUrl || isLikelyYouTubeUrl(mediaUrl)) && (
                             <iframe
                                 key={`yt-embed-${youtubeVideoId || alert?.id || mediaUrl}`}
                                 src={youtubeEmbedUrl || mediaUrl}

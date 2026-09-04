@@ -178,7 +178,7 @@ export const GrievanceStatusChangePopup = ({
             const phoneWithCountry = phone.startsWith('91') ? phone : `91${phone}`;
             navigator.clipboard.writeText(escalateMessage);
             toast.success('Escalation message copied to clipboard');
-            window.open(`https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(escalateMessage)}`, '_blank');
+            window.open(`https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(escalateMessage)}`, '_blank', 'noopener,noreferrer');
 
             onStatusUpdated?.(grievance.id, 'ESCALATED');
             toast.success(`Escalated to ${selectedContact.name} — Status: ESCALATED`);

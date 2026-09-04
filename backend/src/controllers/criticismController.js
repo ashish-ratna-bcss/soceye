@@ -3,6 +3,7 @@ const CriticismContact = require('../models/CriticismContact');
 const Grievance = require('../models/Grievance');
 const { generateCriticismCode } = require('../services/criticismCodeService');
 const { archiveContentMedia } = require('../services/contentS3Service');
+const { withFileAccessToken } = require('../utils/fileAccessToken');
 const ExcelJS = require('exceljs');
 const logger = require('../utils/logger');
 
@@ -261,7 +262,7 @@ const generateReportPdf = async (req, res) => {
     fs.mkdirSync(path.dirname(absPath), { recursive: true });
 
     const publicBase = (process.env.PUBLIC_BACKEND_URL || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '');
-    const pdfUrl = `${publicBase}/files/${key}`;
+    const pdfUrl = withFileAccessToken(`${publicBase}/files/${key}`, key);
 
     // Build HTML
     const QRCode = require('qrcode');
@@ -312,7 +313,7 @@ const fmtDateHtml = (d) => {
 };
 
 const buildReportHtml = (r, generatedPdfUrl, qrs = {}) => {
-  const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   const dash = v => v || '—';
   const clipText = (value, maxLen) => {
     const text = String(value || '').trim();

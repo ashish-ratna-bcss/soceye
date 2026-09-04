@@ -102,6 +102,10 @@ const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    if (typeof email !== 'string' || typeof password !== 'string') {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
     // Check for user email
     const user = await User.findOne({ email });
 
@@ -157,7 +161,7 @@ const refreshToken = async (req, res) => {
 
     let decoded;
     try {
-      decoded = jwt.verify(token, getRefreshTokenSecret());
+      decoded = jwt.verify(token, getRefreshTokenSecret(), { algorithms: ['HS256'] });
     } catch (error) {
       return res.status(401).json({ message: 'Invalid or expired refresh token' });
     }
@@ -326,7 +330,9 @@ const verifyResetToken = async (req, res) => {
 // @access  Private (Bearer JWT)
 const ssoBridge = async (req, res) => {
   try {
-    const clientIp = (req.headers['x-real-ip'] || req.ip || '').replace('::ffff:', '');
+    // Use the raw TCP peer address, never a client-supplied header (X-Real-IP/X-Forwarded-For
+    // can be set to "127.0.0.1" by any caller and would otherwise defeat this check entirely).
+    const clientIp = (req.socket.remoteAddress || '').replace('::ffff:', '');
     const allowed = ['127.0.0.1', '::1', 'localhost'];
     if (!allowed.includes(clientIp)) {
       return res.status(403).json({ message: 'SSO bridge is restricted to internal callers' });

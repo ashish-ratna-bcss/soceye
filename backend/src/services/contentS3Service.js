@@ -17,6 +17,7 @@ const path = require('path');
 const { randomUUID } = require('crypto');
 const cheerio = require('cheerio');
 const { MEDIA_ANALYZER_URL } = require('../config/mediaAnalyzer');
+const { withFileAccessToken } = require('../utils/fileAccessToken');
 const logger = require('../utils/logger');
 
 // ─── Local on-prem storage ────────────────────────────────────────────────
@@ -251,7 +252,7 @@ const uploadToS3 = async (buffer, key, _contentType = 'application/octet-stream'
   fs.mkdirSync(path.dirname(absPath), { recursive: true });
   await fs.promises.writeFile(absPath, buffer);
 
-  const url = `${PUBLIC_BASE}/files/${key.split('/').map(encodeURIComponent).join('/')}`;
+  const url = withFileAccessToken(`${PUBLIC_BASE}/files/${key.split('/').map(encodeURIComponent).join('/')}`, key);
   return { url, key };
 };
 

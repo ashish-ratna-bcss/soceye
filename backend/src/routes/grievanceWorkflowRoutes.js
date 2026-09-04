@@ -44,7 +44,7 @@ const requireWorkflowReportFeature = (req, res, next) => {
 };
 
 /* ── Dashboard stats (lightweight, no feature gate needed) ── */
-router.get('/dashboard-stats', getDashboardStats);
+router.get('/dashboard-stats', protect, loadUserPermissions, requireWorkflowPageAccess, getDashboardStats);
 
 router.use(protect, loadUserPermissions, requireWorkflowPageAccess, requireWorkflowReportFeature);
 

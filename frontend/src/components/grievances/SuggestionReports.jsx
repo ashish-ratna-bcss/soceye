@@ -627,7 +627,7 @@ export const SuggestionReports = ({ openReportCode = '', onReportCodeHandled }) 
             description: 'Opening WhatsApp...'
         });
 
-        window.open(`https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`, '_blank');
+        window.open(`https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
     };
 
     const handleCopyToClipboard = () => {

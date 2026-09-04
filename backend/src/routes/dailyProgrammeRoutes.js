@@ -52,22 +52,27 @@ router.get('/download-periscope', requireAnyPageAccess(WRITE_PAGES), downloadPer
 // Get programmes by date
 router.get('/', requireAnyPageAccess(READ_PAGES), getProgrammesByDate);
 
+// NOTE: role checks below previously listed roles ('super_admin', 'analyst', 'viewer')
+// that don't exist in the User schema enum (['superadmin', 'level-1', 'level-2']), so
+// only superadmin could ever pass despite level-1/level-2 already holding page access
+// to /announcements via RBAC. Corrected to the real enum values.
+
 // Upload Periscope .docx and parse into programmes
-router.post('/upload-periscope', requireAnyPageAccess(WRITE_PAGES), authorize('super_admin','superadmin', 'analyst', 'viewer'), upload.single('file'), uploadPeriscope);
+router.post('/upload-periscope', requireAnyPageAccess(WRITE_PAGES), authorize('superadmin', 'level-1', 'level-2'), upload.single('file'), uploadPeriscope);
 
 // Save bulk programmes for a date
-router.post('/bulk', requireAnyPageAccess(WRITE_PAGES), authorize('super_admin','superadmin' ,'analyst', 'viewer'), saveProgrammesBulk);
+router.post('/bulk', requireAnyPageAccess(WRITE_PAGES), authorize('superadmin', 'level-1', 'level-2'), saveProgrammesBulk);
 
 // Create single programme
-router.post('/', requireAnyPageAccess(WRITE_PAGES), authorize('super_admin','superadmin' ,'analyst', 'viewer'), createProgramme);
+router.post('/', requireAnyPageAccess(WRITE_PAGES), authorize('superadmin', 'level-1', 'level-2'), createProgramme);
 
 // Update single programme
-router.put('/:id', requireAnyPageAccess(WRITE_PAGES), authorize('super_admin', 'analyst','superadmin', 'viewer'), updateProgramme);
+router.put('/:id', requireAnyPageAccess(WRITE_PAGES), authorize('superadmin', 'level-1', 'level-2'), updateProgramme);
 
 // Delete single programme
-router.delete('/:id', requireAnyPageAccess(WRITE_PAGES), authorize('super_admin', 'analyst','superadmin' ,'viewer'), deleteProgramme);
+router.delete('/:id', requireAnyPageAccess(WRITE_PAGES), authorize('superadmin', 'level-1', 'level-2'), deleteProgramme);
 
-// Clear all programmes for a date
-router.delete('/date/:date', requireAnyPageAccess(WRITE_PAGES), authorize('super_admin','superadmin' ,'analyst'), clearProgrammesByDate);
+// Clear all programmes for a date — kept superadmin-only (destructive, bulk operation).
+router.delete('/date/:date', requireAnyPageAccess(WRITE_PAGES), authorize('superadmin'), clearProgrammesByDate);
 
 module.exports = router;

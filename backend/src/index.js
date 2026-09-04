@@ -94,9 +94,23 @@ const reportStaticOptions = {
     }
   }
 };
-app.use('/files', express.static(reportStorageDir, reportStaticOptions));
+// PII/case files (POI reports, grievance/criticism/query/suggestion/event reports,
+// uploaded attachments) must not be servable to anonymous callers. A direct <a href>/
+// <iframe> can't carry an Authorization header, so we also accept a narrowly-scoped
+// per-file token (see utils/fileAccessToken.js) issued by the controllers that create
+// these URLs; anything else falls back to the normal session-JWT check.
+const { protect: protectFileAccess } = require('./middleware/authMiddleware');
+const { isValidFileAccessToken } = require('./utils/fileAccessToken');
+const authenticateFileRequest = (req, res, next) => {
+  const key = decodeURIComponent(req.path.replace(/^\/+/, ''));
+  if (isValidFileAccessToken(req.query.token, key)) {
+    return next();
+  }
+  return protectFileAccess(req, res, next);
+};
+app.use('/files', authenticateFileRequest, express.static(reportStorageDir, reportStaticOptions));
 // Serve generated files under /api as well so reverse proxies that only forward /api still expose reports.
-app.use('/api/files', express.static(reportStorageDir, reportStaticOptions));
+app.use('/api/files', authenticateFileRequest, express.static(reportStorageDir, reportStaticOptions));
 
 // Routes
 app.use('/api/health', require('./routes/healthRoutes'));
@@ -170,7 +184,11 @@ app.use((req, res, next) => {
 app.use((err, req, res, next) => {
   logger.error(`[req ${req.id || '-'}] Unhandled error on ${req.method} ${req.originalUrl}:`, err.message, err.stack);
   if (res.headersSent) return next(err);
-  res.status(err.status || 500).json({ message: err.message || 'Internal server error' });
+  const status = err.status || 500;
+  // Never forward raw Mongoose/driver error text (schema/field/model names) to the
+  // client in production; 4xx messages set intentionally by app code are still safe.
+  const message = status >= 500 && isProduction() ? 'Internal server error' : (err.message || 'Internal server error');
+  res.status(status).json({ message });
 });
 
 // Default Admin User

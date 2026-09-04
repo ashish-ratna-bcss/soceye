@@ -7,6 +7,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { withFileAccessToken } = require('../utils/fileAccessToken');
 
 const STORAGE_DIR = process.env.REPORT_STORAGE_DIR || path.join(__dirname, '..', '..', 'storage');
 const PUBLIC_BASE = (process.env.PUBLIC_BACKEND_URL || `http://localhost:${process.env.PORT || 8000}`).replace(/\/+$/, '');
@@ -20,12 +21,12 @@ const uploadPeriscopeToS3 = async (buffer, dateStr, originalFilename) => {
     fs.mkdirSync(path.dirname(absPath), { recursive: true });
     await fs.promises.writeFile(absPath, buffer);
 
-    const url = `${PUBLIC_BASE}/files/${key.split('/').map(encodeURIComponent).join('/')}`;
+    const url = withFileAccessToken(`${PUBLIC_BASE}/files/${key.split('/').map(encodeURIComponent).join('/')}`, key);
     return { url, key };
 };
 
 const getPeriscopeDownloadUrl = async (s3Key) => {
-    return `${PUBLIC_BASE}/files/${s3Key.split('/').map(encodeURIComponent).join('/')}`;
+    return withFileAccessToken(`${PUBLIC_BASE}/files/${s3Key.split('/').map(encodeURIComponent).join('/')}`, s3Key);
 };
 
 module.exports = {

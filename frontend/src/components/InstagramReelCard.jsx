@@ -269,7 +269,14 @@ const InstagramReelCard = ({ content, source, onRefresh }) => {
     content.thumbnail_url ||
     mediaUrl;
 
-  const embedUrl = content.content_url
+  const isInstagramUrl = (url) => {
+    try {
+      return /(^|\.)instagram\.com$/i.test(new URL(url).hostname.replace(/^www\./i, ''));
+    } catch (_) {
+      return false;
+    }
+  };
+  const embedUrl = content.content_url && isInstagramUrl(content.content_url)
     ? content.content_url.trim().replace(/\/$/, '') + '/embed/captioned/'
     : null;
 
@@ -377,7 +384,7 @@ const InstagramReelCard = ({ content, source, onRefresh }) => {
           )}
           <button
             className="hover:opacity-60 transition-opacity"
-            onClick={() => content.content_url && window.open(content.content_url, '_blank')}
+            onClick={() => content.content_url && window.open(content.content_url, '_blank', 'noopener,noreferrer')}
             title="Open on Instagram"
           >
             <MoreHorizontal className="w-5 h-5 text-gray-600 cursor-pointer" />
@@ -530,7 +537,7 @@ const InstagramReelCard = ({ content, source, onRefresh }) => {
         {commentsCount > 0 && (
           <button
             className="text-gray-500 text-sm mb-2"
-            onClick={() => content.content_url && window.open(content.content_url, '_blank')}
+            onClick={() => content.content_url && window.open(content.content_url, '_blank', 'noopener,noreferrer')}
           >
             View all {commentsCount.toLocaleString()} comments
           </button>

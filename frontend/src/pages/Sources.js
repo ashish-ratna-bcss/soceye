@@ -1096,7 +1096,7 @@ const Sources = () => {
                     <span className="flex items-center gap-1.5" title="Shares"><Share2 className="h-3.5 w-3.5" /> {(item.engagement?.shares || 0).toLocaleString()}</span>
                   </div>
                   {item.content_url && (
-                    <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => window.open(item.content_url, '_blank')}>
+                    <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => window.open(item.content_url, '_blank', 'noopener,noreferrer')}>
                       <ExternalLink className="h-3 w-3" /> View Post
                     </Button>
                   )}
@@ -1218,7 +1218,7 @@ const Sources = () => {
             <Card className="overflow-hidden border-slate-200">
               <div className={`h-32 bg-gradient-to-r ${gradient} relative`}>
                 <div className="absolute bottom-4 right-4 flex gap-2">
-                  <Button variant="secondary" size="sm" className="bg-white/90 hover:bg-white text-black text-xs font-semibold backdrop-blur-sm" onClick={() => window.open(getSourceLink(selectedSource), '_blank')}>
+                  <Button variant="secondary" size="sm" className="bg-white/90 hover:bg-white text-black text-xs font-semibold backdrop-blur-sm" onClick={() => window.open(getSourceLink(selectedSource), '_blank', 'noopener,noreferrer')}>
                     <ExternalLink className="h-3 w-3 mr-1.5" /> {getPlatformViewLabel(selectedSource.platform)}
                   </Button>
                   <Button variant="destructive" size="sm" className="text-xs font-semibold shadow-sm" onClick={() => handleDelete(selectedSource.id)}>
@@ -1365,7 +1365,7 @@ const Sources = () => {
                         <Card key={story.id || story.content_id} className="overflow-hidden group cursor-pointer hover:shadow-lg transition-all"
                           onClick={() => {
                             const url = story.content_url || story.media_url;
-                            if (url) window.open(url, '_blank');
+                            if (url) window.open(url, '_blank', 'noopener,noreferrer');
                           }}>
                           <div className="relative aspect-[9/16] bg-gradient-to-br from-purple-100 to-pink-100">
                             {(story.thumbnail_url || story.media_url) ? (
@@ -1426,7 +1426,7 @@ const Sources = () => {
                             <RiskBadge level={selectedVideo.risk_level} score={selectedVideo.risk_score} />
                           </div>
                         </div>
-                        <Button variant="outline" className="gap-2" onClick={() => window.open(`https://www.youtube.com/watch?v=${selectedVideo.content_id}`, '_blank')}>
+                        <Button variant="outline" className="gap-2" onClick={() => window.open(`https://www.youtube.com/watch?v=${selectedVideo.content_id}`, '_blank', 'noopener,noreferrer')}>
                           <ExternalLink className="h-4 w-4" /> Open in YouTube
                         </Button>
                       </div>

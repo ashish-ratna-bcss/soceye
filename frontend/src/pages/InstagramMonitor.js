@@ -1452,7 +1452,7 @@ const InstagramMonitor = () => {
           <Card className="overflow-hidden border-border bg-card">
             <div className="h-32 bg-gradient-to-r from-purple-500 to-pink-500 relative">
               <div className="absolute bottom-4 right-4 flex gap-2">
-                <Button variant="secondary" size="sm" className="bg-white/90 hover:bg-white text-black text-xs font-semibold backdrop-blur-sm" onClick={() => window.open(`https://instagram.com/${selectedSource.identifier.replace('@', '')}`, '_blank')}>
+                <Button variant="secondary" size="sm" className="bg-white/90 hover:bg-white text-black text-xs font-semibold backdrop-blur-sm" onClick={() => window.open(`https://instagram.com/${selectedSource.identifier.replace('@', '')}`, '_blank', 'noopener,noreferrer')}>
                   <ExternalLink className="h-3 w-3 mr-1.5" />
                   View on Instagram
                 </Button>

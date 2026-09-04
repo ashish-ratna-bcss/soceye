@@ -3,6 +3,7 @@ const Content = require('../models/Content');
 const Alert = require('../models/Alert');
 const Settings = require('../models/Settings');
 const { createAuditLog } = require('../services/auditService');
+const { withFileAccessToken } = require('../utils/fileAccessToken');
 const { scanEventOnce } = require('../services/eventMonitorService');
 const { generateEventKeywords } = require('../services/keywordGenService');
 const { classifyContent } = require('../utils/hyderabadClassifier');
@@ -596,10 +597,10 @@ module.exports = {
       fs.mkdirSync(path.dirname(absPath), { recursive: true });
 
       const publicBase = (process.env.PUBLIC_BACKEND_URL || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '');
-      const pdfUrl = `${publicBase}/files/${key}`;
+      const pdfUrl = withFileAccessToken(`${publicBase}/files/${key}`, key);
 
       // ── Build HTML ──
-      const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
       const QRCode = require('qrcode');
       const pdfQrDataUrl = pdfUrl
         ? await QRCode.toDataURL(String(pdfUrl), { width: 140, margin: 1, errorCorrectionLevel: 'M' }).catch(() => '')

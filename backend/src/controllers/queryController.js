@@ -2,6 +2,8 @@ const QueryReport = require('../models/QueryReport');
 const Grievance = require('../models/Grievance');
 const { generateQueryCode } = require('../services/queryCodeService');
 const { archiveContentMedia } = require('../services/contentS3Service');
+const { withFileAccessToken } = require('../utils/fileAccessToken');
+const { escapeRegex } = require('../utils/escapeRegex');
 const ExcelJS = require('exceljs');
 const logger = require('../utils/logger');
 
@@ -289,7 +291,7 @@ const getReports = async (req, res) => {
     if (platform && platform !== 'all') query.platform = platform;
     if (status && status !== 'all') query.status = status;
     if (unique_code) {
-      query.unique_code = { $regex: String(unique_code).trim(), $options: 'i' };
+      query.unique_code = { $regex: escapeRegex(String(unique_code).trim()), $options: 'i' };
     }
     if (from || to) {
       query.created_at = {};
@@ -364,7 +366,7 @@ const exportReports = async (req, res) => {
 
     if (platform && platform !== 'all') query.platform = platform;
     if (unique_code) {
-      query.unique_code = { $regex: String(unique_code).trim(), $options: 'i' };
+      query.unique_code = { $regex: escapeRegex(String(unique_code).trim()), $options: 'i' };
     }
     if (from || to) {
       query.created_at = {};
@@ -483,7 +485,7 @@ const generateReportPdf = async (req, res) => {
     fs.mkdirSync(path.dirname(absPath), { recursive: true });
 
     const publicBase = (process.env.PUBLIC_BACKEND_URL || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '');
-    const pdfUrl = `${publicBase}/files/${key}`;
+    const pdfUrl = withFileAccessToken(`${publicBase}/files/${key}`, key);
 
     // ── Build self-contained HTML for the report ──
     const QRCode = require('qrcode');
@@ -534,7 +536,7 @@ const fmtDateHtml = (d) => {
 };
 
 const buildReportHtml = (r, generatedPdfUrl, qrs = {}) => {
-  const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   const dash = v => v || '—';
   const postQr = qrs.postQr || '';
   const pdfQr = qrs.pdfQr || '';

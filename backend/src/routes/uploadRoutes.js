@@ -7,6 +7,7 @@ const path = require('path');
 const rateLimit = require('express-rate-limit');
 const { protect } = require('../middleware/authMiddleware');
 const { requireAnyPageAccess } = require('../middleware/rbacMiddleware');
+const { withFileAccessToken } = require('../utils/fileAccessToken');
 const logger = require('../utils/logger');
 
 logger.info('📦 UPLOAD ROUTES LOADED - VERSION: ONPREM-V1');
@@ -48,7 +49,7 @@ const upload = multer({
 });
 
 const buildPublicUrl = (key) =>
-  `${PUBLIC_BASE}/files/${key.split('/').map(encodeURIComponent).join('/')}`;
+  withFileAccessToken(`${PUBLIC_BASE}/files/${key.split('/').map(encodeURIComponent).join('/')}`, key);
 
 const sanitizeStorageKey = (customKey) => {
   if (customKey == null || customKey === '' || customKey === 'undefined' || customKey === 'null') {

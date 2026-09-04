@@ -275,7 +275,7 @@ export const VideoModal = ({ video, onClose }) => {
                 <Button
                     variant="outline"
                     className="gap-2"
-                    onClick={() => window.open(`https://www.youtube.com/watch?v=${video.content_id}`, '_blank')}
+                    onClick={() => window.open(`https://www.youtube.com/watch?v=${video.content_id}`, '_blank', 'noopener,noreferrer')}
                 >
                     <ExternalLink className="h-4 w-4" />
                     Open in YouTube

@@ -1,6 +1,6 @@
-const axios = require('axios');
 const cheerio = require('cheerio');
 const logger = require('./logger');
+const { safeGet } = require('./ssrfGuard');
 
 /**
  * Scrape Open Graph meta tags from a URL to get link preview data
@@ -9,19 +9,22 @@ const logger = require('./logger');
  */
 const scrapeOpenGraph = async (url) => {
     try {
-        // Follow redirects to get final URL
-        const response = await axios.get(url, {
+        // Follow redirects to get final URL — each hop is checked against the
+        // private/internal-IP blocklist so a t.co-style shortlink can't be used
+        // to make this server-side fetch reach an internal service.
+        const { response, finalUrl } = await safeGet(url, {
             timeout: 5000,
-            maxRedirects: 5,
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
                 'Accept-Language': 'en-US,en;q=0.5'
-            },
-            validateStatus: (status) => status < 400
-        });
+            }
+        }, 5);
 
-        const finalUrl = response.request?.res?.responseUrl || url;
+        if (response.status >= 400) {
+            return null;
+        }
+
         const html = response.data;
 
         if (typeof html !== 'string') {

@@ -2,6 +2,9 @@ const express = require('express');
 const logger = require('../utils/logger');
 const router = express.Router();
 const axios = require('axios');
+const { protect } = require('../middleware/authMiddleware');
+
+router.use(protect);
 
 router.get('/search', async (req, res) => {
   try {

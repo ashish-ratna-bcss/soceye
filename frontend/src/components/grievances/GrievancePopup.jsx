@@ -357,7 +357,7 @@ export const GrievancePopup = ({ grievance, onClose, userName = '', onReportCrea
 
             navigator.clipboard.writeText(finalMsg);
             toast.success('Message copied to clipboard');
-            window.open(`https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(finalMsg)}`, '_blank');
+            window.open(`https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(finalMsg)}`, '_blank', 'noopener,noreferrer');
             setSelectedContact(contact);
             toast.success(`Shared with ${contact.name} — Status: PENDING`);
         } catch { toast.error('Failed to record share'); }
@@ -416,7 +416,7 @@ export const GrievancePopup = ({ grievance, onClose, userName = '', onReportCrea
         }
 
         navigator.clipboard.writeText(finalMsg).catch(() => { });
-        window.open(`https://wa.me/?text=${encodeURIComponent(finalMsg)}`, '_blank');
+        window.open(`https://wa.me/?text=${encodeURIComponent(finalMsg)}`, '_blank', 'noopener,noreferrer');
         toast.success('Opened WhatsApp. Select any contact to share.');
     };
 

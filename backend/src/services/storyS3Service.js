@@ -9,6 +9,7 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const { MEDIA_ANALYZER_URL } = require('../config/mediaAnalyzer');
+const { withFileAccessToken } = require('../utils/fileAccessToken');
 const logger = require('../utils/logger');
 
 const STORAGE_DIR = process.env.REPORT_STORAGE_DIR || path.join(__dirname, '..', '..', 'storage');
@@ -53,7 +54,7 @@ const uploadStoryToS3 = async (buffer, filename, _contentType = 'application/oct
   fs.mkdirSync(path.dirname(absPath), { recursive: true });
   await fs.promises.writeFile(absPath, buffer);
 
-  const url = `${PUBLIC_BASE}/files/${key.split('/').map(encodeURIComponent).join('/')}`;
+  const url = withFileAccessToken(`${PUBLIC_BASE}/files/${key.split('/').map(encodeURIComponent).join('/')}`, key);
   return { url, key };
 };
 

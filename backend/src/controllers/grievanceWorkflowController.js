@@ -3,6 +3,7 @@ const CriticismContact = require('../models/CriticismContact'); // reuse same co
 const Grievance = require('../models/Grievance');
 const { generateGrievanceWorkflowCode } = require('../services/grievanceWorkflowCodeService');
 const { archiveContentMedia } = require('../services/contentS3Service');
+const { withFileAccessToken } = require('../utils/fileAccessToken');
 const ExcelJS = require('exceljs');
 const logger = require('../utils/logger');
 
@@ -803,7 +804,8 @@ const generateReportPdf = async (req, res) => {
     const filePath = path.join(reportsDir, filename);
 
     const publicBase = (process.env.PUBLIC_BACKEND_URL || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '');
-    const finalPdfUrl = `${publicBase}/api/files/grievance-reports/${filename}`;
+    const grievanceReportKey = `grievance-reports/${filename}`;
+    const finalPdfUrl = withFileAccessToken(`${publicBase}/api/files/${grievanceReportKey}`, grievanceReportKey);
 
     // ── Pre-render QR codes locally (no external API needed) ──
     const [postQrImage, pdfQrImage] = await Promise.all([
@@ -879,7 +881,7 @@ const buildReportHtml = (r, options = {}) => {
     ...(r.officer_logs || []).map(l => ({ ...l, _src: 'officer' }))
   ].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-  const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   const dash = v => v || '—';
   const effectivePdfUrl = options.pdfUrl || r.report_pdf_url || '';
   const postQrImageUrl = options.postQrImage || '';

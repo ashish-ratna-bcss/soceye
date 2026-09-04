@@ -159,7 +159,14 @@ const PostModal = ({ item, profile, onClose, onPrev, onNext, hasPrev, hasNext })
   const imageUrl = imageMedia?.s3_url || imageMedia?.url || videoMedia?.s3_preview || videoMedia?.preview || videoMedia?.preview_image_url || imageMedia?.s3_preview || imageMedia?.preview || item.thumbnail_url || '';
   const thumbnailUrl = videoMedia?.s3_preview || videoMedia?.preview || videoMedia?.preview_image_url || imageMedia?.s3_url || imageMedia?.url || item.thumbnail_url || '';
 
-  const embedUrl = item.content_url
+  const isInstagramUrl = (url) => {
+    try {
+      return /(^|\.)instagram\.com$/i.test(new URL(url).hostname.replace(/^www\./i, ''));
+    } catch (_) {
+      return false;
+    }
+  };
+  const embedUrl = item.content_url && isInstagramUrl(item.content_url)
     ? item.content_url.trim().replace(/\/$/, '') + '/embed/captioned/'
     : null;
 

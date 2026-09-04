@@ -20,7 +20,7 @@ const protect = async (req, res, next) => {
 
   if (token) {
     try {
-      const decoded = jwt.verify(token, getJwtSecret());
+      const decoded = jwt.verify(token, getJwtSecret(), { algorithms: ['HS256'] });
 
       // Get user from the token
       req.user = await User.findOne({ id: decoded.user_id }).select('-password').lean();

@@ -22,6 +22,7 @@ const exifr = require('exifr');
 
 const Content = require('../models/Content');
 const logger = require('../utils/logger');
+const { safeGet } = require('../utils/ssrfGuard');
 
 const DOWNLOAD_TIMEOUT_MS = Number(process.env.MEDIA_LOC_DOWNLOAD_TIMEOUT_MS) || 15000;
 const MAX_DOWNLOAD_BYTES = Number(process.env.MEDIA_LOC_MAX_BYTES) || 25 * 1024 * 1024; // 25MB safety cap
@@ -55,17 +56,22 @@ const drainQueue = async () => {
 
 // ── Core: download a single media URL into a buffer ─────────────────────────
 const downloadToBuffer = async (url) => {
-  const res = await axios.get(url, {
+  // Content media URLs are stored fields that could in principle be influenced
+  // by ingestion data; validate every redirect hop against the private-IP
+  // blocklist so this can't be turned into an internal-network SSRF probe.
+  const { response } = await safeGet(url, {
     responseType: 'arraybuffer',
     timeout: DOWNLOAD_TIMEOUT_MS,
     maxContentLength: MAX_DOWNLOAD_BYTES,
     maxBodyLength: MAX_DOWNLOAD_BYTES,
     headers: {
       'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
-    },
-    validateStatus: (s) => s >= 200 && s < 400
-  });
-  return Buffer.from(res.data);
+    }
+  }, 5);
+  if (response.status < 200 || response.status >= 400) {
+    throw new Error(`Unexpected status ${response.status} downloading media`);
+  }
+  return Buffer.from(response.data);
 };
 
 // ── Core: parse GPS from a buffer (works for images and many videos) ────────

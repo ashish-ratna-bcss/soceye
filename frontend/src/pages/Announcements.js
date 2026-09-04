@@ -627,7 +627,7 @@ const Announcements = () => {
                     document.body.removeChild(a);
 
                     const message = encodeURIComponent(`Here is the Daily Programmes Report for ${formatDateDisplay(selectedDate)}`);
-                    window.open(`https://wa.me/?text=${message}`, '_blank');
+                    window.open(`https://wa.me/?text=${message}`, '_blank', 'noopener,noreferrer');
 
                     // Specific instruction for desktop user
                     toast.info('Please DRAG & DROP the downloaded file into WhatsApp', {

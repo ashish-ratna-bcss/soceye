@@ -7,7 +7,14 @@ const {
     deletePolicy
 } = require('../controllers/policyController');
 
+const { protect } = require('../middleware/authMiddleware');
+const { requireAnyPageAccess } = require('../middleware/rbacMiddleware');
+const { validateObjectIdParam } = require('../middleware/validateObjectId');
+
 const router = express.Router();
+
+router.use(protect, requireAnyPageAccess(['/settings']));
+router.param('id', validateObjectIdParam());
 
 router
     .route('/')

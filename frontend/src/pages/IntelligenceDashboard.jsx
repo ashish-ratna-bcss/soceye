@@ -2516,7 +2516,7 @@ const ProfilesIntelligence = ({ data, dateFrom, dateTo }) => {
                 </thead>
                 <tbody>
                   {filteredDrillProfiles.map((poi, idx) => (
-                    <tr key={poi._id || idx} className="border-b border-slate-100 hover:bg-violet-50/30 transition-colors cursor-pointer" onClick={() => window.open(`/person-of-interest/${poi._id}`, '_blank')}>
+                    <tr key={poi._id || idx} className="border-b border-slate-100 hover:bg-violet-50/30 transition-colors cursor-pointer" onClick={() => window.open(`/person-of-interest/${poi._id}`, '_blank', 'noopener,noreferrer')}>
                       <td className="px-4 py-2.5 text-slate-400 font-mono">{idx + 1}</td>
                       <td className="px-4 py-2.5">
                         <div className="font-semibold text-slate-900">{poi.name || 'Unknown'}</div>

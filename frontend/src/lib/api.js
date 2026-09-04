@@ -12,14 +12,25 @@ const API_URL = `${BACKEND_URL}/api`;
  * - In production, uses the relative `path` (served via reverse proxy).
  */
 const getServiceUrl = (envVar, devPort, path) => {
-  if (envVar) return envVar;
+  const isBrowserOnLocalhost = typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  const envVarPointsToLocalhost = envVar && /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/)/i.test(envVar);
+
+  // A localhost env value only makes sense when the page itself is being viewed
+  // from localhost (real local dev). If the site is deployed with a stale/dev
+  // .env that still says "localhost", ignore it rather than sending every real
+  // visitor's browser to fetch their own machine — fall through to the
+  // production relative-path branch below instead.
+  if (envVar && !(envVarPointsToLocalhost && !isBrowserOnLocalhost)) {
+    return envVar;
+  }
 
   if (typeof window === 'undefined') return `http://localhost:${devPort}${path}`;
 
   const { hostname, port } = window.location;
   const isIP = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(hostname);
 
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+  if (isBrowserOnLocalhost) {
     return `http://localhost:${devPort}${path}`;
   }
   if (isIP || port === '3000') {

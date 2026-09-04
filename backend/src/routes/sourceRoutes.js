@@ -19,6 +19,7 @@ const {
 
 const { protect } = require('../middleware/authMiddleware');
 const { requireAnyPageAccess, requirePlatformFeatureAccess } = require('../middleware/rbacMiddleware');
+const { validateObjectIdParam } = require('../middleware/validateObjectId');
 
 const SOURCE_ALLOWED_PAGES = [
   '/sources',
@@ -33,6 +34,7 @@ const SOURCE_ALLOWED_PAGES = [
 ];
 
 router.use(protect, requireAnyPageAccess(SOURCE_ALLOWED_PAGES));
+router.param('id', validateObjectIdParam());
 
 router.route('/')
   .get(requirePlatformFeatureAccess('/monitors', (req) => req.query.platform), getSources)

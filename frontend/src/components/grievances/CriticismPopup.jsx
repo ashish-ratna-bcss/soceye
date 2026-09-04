@@ -298,7 +298,7 @@ export const CriticismPopup = ({ grievance, onClose, onReportCreated, userName =
 
             const encodedMessage = encodeURIComponent(finalMsg);
             const whatsappUrl = `https://wa.me/${phoneWithCountry}?text=${encodedMessage}`;
-            window.open(whatsappUrl, '_blank');
+            window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
 
             toast.success(`Shared with ${contact.name} via WhatsApp`);
             setSelectedContact(contact);

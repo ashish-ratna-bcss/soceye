@@ -620,7 +620,7 @@ const FacebookMonitor = () => {
                                 </span>
                             </div>
                             {post.content_url && (
-                                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => window.open(post.content_url, '_blank')}>
+                                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => window.open(post.content_url, '_blank', 'noopener,noreferrer')}>
                                     <ExternalLink className="h-3 w-3" /> View Post
                                 </Button>
                             )}
@@ -766,7 +766,7 @@ const FacebookMonitor = () => {
                                     <RefreshCw className={cn('h-3 w-3 mr-1.5', scanningIds.has(selectedSource.id) ? 'animate-spin' : '')} />
                                     Scan Now
                                 </Button>
-                                <Button variant="secondary" size="sm" className="bg-white/90 hover:bg-white text-black text-xs font-semibold backdrop-blur-sm" onClick={() => window.open(toFacebookUrl(selectedSource.identifier), '_blank')}>
+                                <Button variant="secondary" size="sm" className="bg-white/90 hover:bg-white text-black text-xs font-semibold backdrop-blur-sm" onClick={() => window.open(toFacebookUrl(selectedSource.identifier), '_blank', 'noopener,noreferrer')}>
                                     <ExternalLink className="h-3 w-3 mr-1.5" />
                                     View on Facebook
                                 </Button>

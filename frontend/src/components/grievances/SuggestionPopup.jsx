@@ -280,7 +280,7 @@ export const SuggestionPopup = ({ grievance, onClose, userName = '', onReportCre
             }
 
             const encodedMessage = encodeURIComponent(finalMsg);
-            window.open(`https://wa.me/${phoneWithCountry}?text=${encodedMessage}`, '_blank');
+            window.open(`https://wa.me/${phoneWithCountry}?text=${encodedMessage}`, '_blank', 'noopener,noreferrer');
 
             toast.success(`Shared with ${contact.name} via WhatsApp`);
             setSelectedContact(contact);

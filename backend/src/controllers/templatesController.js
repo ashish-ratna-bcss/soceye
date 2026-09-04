@@ -5,6 +5,7 @@ const Content = require('../models/Content');
 const Settings = require('../models/Settings');
 const templateService = require('../services/templateService');
 const { format } = require('date-fns');
+const { escapeHtml } = require('../utils/escapeHtml');
 const logger = require('../utils/logger');
 
 /**
@@ -289,10 +290,13 @@ const generateTemplate = async (req, res) => {
         // Interpolate template
         let html = template.html_content;
 
-        // Replace all {{PLACEHOLDER}} patterns with actual values
+        // Replace all {{PLACEHOLDER}} patterns with actual values. Values include
+        // scraped social-media post text and alert descriptions — fully attacker-
+        // controlled — so every substitution is HTML-escaped before going into the
+        // template (this HTML is later rendered by Puppeteer / posted to the browser).
         for (const [key, value] of Object.entries(interpolationData)) {
             const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
-            html = html.replace(regex, String(value || ''));
+            html = html.replace(regex, escapeHtml(value));
         }
 
         res.json({ html });
