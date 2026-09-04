@@ -1,0 +1,41 @@
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:237:            '"risk_score": 0, "reasoning": "...", "summary": "...", '
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:241:        '{"category": "...", "intent": "...", "risk_score": 0, "reasoning": "...", '
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:252:            f"  risk_score         -> 0\n"
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:260:        f"  risk_score         -> 0\n"
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:300:4. Never modify, override, second-guess or "correct" the supplied sentiment.
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:313:11. If `matched_keywords` are provided in the input, evaluate whether each keyword \
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:316:`keyword_context` field.
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:325:4. Never modify, override, second-guess or "correct" the supplied sentiment.
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:346:risk_score — integer 0-100, a CONTEXTUAL risk assessment weighing:
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:408:        "risk_score": {"type": "integer", "minimum": 0, "maximum": 100},
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:415:        "category", "intent", "risk_score", "reasoning", "summary",
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:428:    properties["keyword_context"] = {
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:444:        required.append("keyword_context")
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:472:    risk_score: int
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:484:    keyword_context: list[dict] = field(default_factory=list)
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:512:        risk_score=0,
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:523:        keyword_context=[],
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:646:def build_payload(result: dict, signals: list[str], matched_keywords: list[dict] | None = None) -> dict:
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:670:    if matched_keywords:
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:671:        payload["matched_keywords"] = matched_keywords
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:899:        matched_keywords: list[dict] | None = None,
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:911:        system_prompt = _prompt_for(pack, intent_mode, has_keywords=bool(matched_keywords))
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:912:        schema = _schema_for(pack, intent_mode, has_keywords=bool(matched_keywords))
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:916:                build_payload(result, signals, matched_keywords=matched_keywords),
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:949:        matched_keywords: list[list[dict]] | None = None,
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:985:            mks = matched_keywords[j] if matched_keywords and j < len(matched_keywords) else None
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:987:                results[j], pack=pack, intent_mode=intent_mode, timeout_s=timeout_s, matched_keywords=mks
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:1056:            risk = int(round(float(raw.get("risk_score", 0))))
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:1058:            logger.warning("Model returned a non-numeric risk_score %r.", raw.get("risk_score"))
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:1070:        keyword_context = []
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:1071:        if isinstance(raw.get("keyword_context"), list):
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:1072:            keyword_context = raw["keyword_context"]
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:1078:            risk_score=risk,
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/intelligence.py:1088:            keyword_context=keyword_context,
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/lid_roman.py:30:guess rather than forcing a possibly-wrong override.
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/pipeline.py:215:        for exactly this distinction — use it to override the language for
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/src/pipeline.py:220:        Unique Indic scripts (Kannada, Malayalam, …) override lingua
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/api_server.py:241:    matched_keywords: Optional[list[list[MatchedKeywordModel]]] = None
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/api_server.py:598:            matched_keywords=[
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/api_server.py:600:                for mks in (req.matched_keywords or [])
+/home/cat-hyd-work-station/BCSS/social_media_sentiment_analysis/api_server.py:601:            ] if req.matched_keywords else None,

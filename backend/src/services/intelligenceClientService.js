@@ -297,11 +297,12 @@ function flattenResult(pipelineItem) {
     was_transliterated: Boolean(pipelineItem.was_transliterated),
     latency_ms: typeof intel.latency_ms === 'number' ? intel.latency_ms : null,
     policy_pack_fingerprint: intel.policy_pack_fingerprint || null,
-    schema_enforced: intel.schema_enforced !== false
+    schema_enforced: intel.schema_enforced !== false,
+    keyword_context: Array.isArray(intel.keyword_context) ? intel.keyword_context : []
   };
 }
 
-async function requestIntelligence(text, { laneName, timeoutMs }) {
+async function requestIntelligence(text, { laneName, timeoutMs, matchedKeywords }) {
   await mappingService.waitForLoad();
   const pack = buildPolicyPack();
   const body = {
@@ -310,6 +311,10 @@ async function requestIntelligence(text, { laneName, timeoutMs }) {
     intent_mode: INTENT_MODE,
     timeout_s: Math.max(5, Math.min(600, Math.floor(timeoutMs / 1000) - 5))
   };
+  
+  if (Array.isArray(matchedKeywords) && matchedKeywords.length > 0) {
+    body.matched_keywords = [matchedKeywords.map(k => ({ keyword: String(k.keyword), weight: Number(k.weight) || 50 }))];
+  }
 
   let lastError = null;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -364,9 +369,10 @@ async function requestIntelligence(text, { laneName, timeoutMs }) {
  * Analyze text via the sentiment-api intelligence endpoint.
  * @param {string} text
  * @param {{ lane?: 'bulk'|'interactive' }} [options]
+ * @param {Array<{keyword: string, weight: number}>} [matchedKeywords]
  * @returns {Promise<object|null>} flat result or null on failure
  */
-async function analyzeText(text, options = {}) {
+async function analyzeText(text, options = {}, matchedKeywords = []) {
   if (!text || typeof text !== 'string') {
     logger.warn('[Intelligence] Skipped: text is null/undefined/non-string');
     return null;
@@ -382,7 +388,7 @@ async function analyzeText(text, options = {}) {
 
   try {
     return await lane.enqueue(() =>
-      requestIntelligence(trimmed, { laneName, timeoutMs: lane.timeoutMs })
+      requestIntelligence(trimmed, { laneName, timeoutMs: lane.timeoutMs, matchedKeywords })
     );
   } catch (err) {
     logger.error(`[Intelligence/${laneName}] ${err.message}`);

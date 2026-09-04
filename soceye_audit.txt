@@ -1,0 +1,338 @@
+/home/cat-hyd-work-station/SOCEYE/backend/src/models/Event.js:54:  // Event-specific overrides
+/home/cat-hyd-work-station/SOCEYE/backend/src/models/InstagramStory.js:126:  risk_score: {
+/home/cat-hyd-work-station/SOCEYE/backend/src/models/Alert.js:28:  matched_keywords_normalized: {
+/home/cat-hyd-work-station/SOCEYE/backend/src/models/Alert.js:43:    enum: ['keyword_risk', 'ai_risk', 'velocity', 'new_post'],
+/home/cat-hyd-work-station/SOCEYE/backend/src/models/Alert.js:44:    default: 'keyword_risk'
+/home/cat-hyd-work-station/SOCEYE/backend/src/models/Alert.js:85:    risk_score: { type: Number },        // 0-100
+/home/cat-hyd-work-station/SOCEYE/backend/src/models/Alert.js:208:alertSchema.index({ status: 1, matched_keywords_normalized: 1, content_published_at: -1, id: -1 });
+/home/cat-hyd-work-station/SOCEYE/backend/src/models/Analysis.js:15:  risk_score: {
+/home/cat-hyd-work-station/SOCEYE/backend/src/models/Analysis.js:49:  triggered_keywords: [{
+/home/cat-hyd-work-station/SOCEYE/backend/src/models/ComprehensiveReport.js:49:      source_platforms: [String], reach: Number, risk_score: Number,
+/home/cat-hyd-work-station/SOCEYE/backend/src/models/ComprehensiveReport.js:62:      risk_score: Number, created_at: Date, platform: String, status: String
+/home/cat-hyd-work-station/SOCEYE/backend/src/models/DailyIntelligenceReport.js:114:            risk_score: Number,
+/home/cat-hyd-work-station/SOCEYE/backend/src/models/Content.js:283:  risk_score: { type: Number, default: 0 }, // 0-100
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/llmService.js:7: * Single LLM call for: category, intent, sentiment, risk_score (0-100), reasoning.
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/llmService.js:16:const MAX_TEXT_LENGTH = Math.max(800, Number(process.env.OLLAMA_MAX_TEXT_LENGTH || 2500)); // Lower default for faster inference
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/llmService.js:19:const DEFAULT_QUEUE_WAIT_MS = Math.max(0, Number(process.env.OLLAMA_QUEUE_WAIT_MS || 0)); // 0 => no queue timeout (no-loss mode)
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/llmService.js:20:const DEFAULT_LLM_CONCURRENCY = Math.max(1, Number(process.env.OLLAMA_CONCURRENCY || 3));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/llmService.js:21:const DEFAULT_FAST_FAIL_THRESHOLD = Math.max(3, Number(process.env.OLLAMA_FAST_FAIL_QUEUE_THRESHOLD || 8));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/llmService.js:22:const DEFAULT_TIMEOUT_CAP_MS = Math.max(5000, Number(process.env.OLLAMA_TIMEOUT_CAP_MS || 45000));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/llmService.js:45:const getTargetConcurrency = () => Math.max(1, Number(process.env.OLLAMA_CONCURRENCY || DEFAULT_LLM_CONCURRENCY));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/llmService.js:49:  return Math.max(1, Math.floor(parsed));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/llmService.js:85:      const fastFailThreshold = Math.max(1, Number(options.fastFailQueueThreshold || process.env.OLLAMA_FAST_FAIL_QUEUE_THRESHOLD || DEFAULT_FAST_FAIL_THRESHOLD));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/llmService.js:95:    const queueWaitMs = Math.max(0, Number(options.queueWaitMs ?? DEFAULT_QUEUE_WAIT_MS));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/llmService.js:200:Return only strict JSON with keys: category, intent, sentiment, risk_score, reasoning.
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/llmService.js:208:- risk_score must be integer 0-100.
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/llmService.js:277:      Math.max(5000, Number(options.timeoutMs || process.env.OLLAMA_TIMEOUT_MS || 20000)),
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/llmService.js:278:      Math.max(3000, Number(options.timeoutCapMs || process.env.OLLAMA_TIMEOUT_CAP_MS || DEFAULT_TIMEOUT_CAP_MS))
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/llmService.js:280:    maxAttempts: Math.max(1, Number(options.maxAttempts || process.env.OLLAMA_MAX_ATTEMPTS || 3)),
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/llmService.js:281:    queueWaitMs: Math.max(0, Number(options.queueWaitMs ?? process.env.OLLAMA_QUEUE_WAIT_MS ?? DEFAULT_QUEUE_WAIT_MS)),
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/llmService.js:283:    fastFailQueueThreshold: Math.max(1, Number(options.fastFailQueueThreshold || process.env.OLLAMA_FAST_FAIL_QUEUE_THRESHOLD || DEFAULT_FAST_FAIL_THRESHOLD))
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/llmService.js:313:              num_predict: Math.max(120, Number(process.env.OLLAMA_MAX_OUTPUT_TOKENS || 240))
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/llmService.js:378:    let finalRiskScore = parseInt(result.risk_score, 10);
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/llmService.js:382:    logger.info(`[LLM] Result: cat=${finalCategory}, sentiment=${finalSentiment}, risk_score=${finalRiskScore}, intent="${(result.intent || '').substring(0, 50)}"`);
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/llmService.js:388:      risk_score: finalRiskScore,
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/llmService.js:416:      Math.max(5000, Number(options.timeoutMs || process.env.OLLAMA_TIMEOUT_MS || 20000)),
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/llmService.js:417:      Math.max(3000, Number(process.env.OLLAMA_TIMEOUT_CAP_MS || DEFAULT_TIMEOUT_CAP_MS))
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/llmService.js:419:    maxAttempts: Math.max(1, Number(options.maxAttempts || process.env.OLLAMA_MAX_ATTEMPTS || 2))
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/llmService.js:474:    confidence = Math.max(0, Math.min(100, confidence));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/reportService.js:114:    const pageNum = Math.max(parseInt(page) || 1, 1);
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/reportService.js:115:    const limitNum = Math.min(Math.max(parseInt(limit) || 20, 1), 100);
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/reportService.js:230:                dataPipeline.push({ $match: { 'alert_data.alert_type': { $in: ['keyword_risk', 'ai_risk', null] } } });
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/reportService.js:313:            totalPages: Math.max(Math.ceil(total / limitNum), 1)
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/retweetNetworkService.js:19:  return Math.max(min, Math.min(parsed, max));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/sentimentEngineService.js:38:      risk_score: result.risk_score,
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2244: * Velocity NEVER modifies risk_level or threat_details.risk_score.
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2266:    current_value: Math.max(...velocity.triggeredMetrics.map((m) => m.value)),
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2268:    velocity: Math.max(...velocity.triggeredMetrics.map((m) => m.value)),
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2325:  let alertType = analysis?.is_keyword_match ? 'keyword_risk' : 'ai_risk';
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2345:  const aiRiskScore = Number(analysis?.risk_score) || 0;
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2388:        risk_score: aiRiskScore,
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2402:      matched_keywords_normalized: (analysis?.triggered_keywords || []).map((k) => String(k).trim().toLowerCase()).filter(Boolean)
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2419:        triggered_keywords: analysis?.triggered_keywords || [],
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2443:        'threat_details.risk_score': aiRiskScore,
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2446:        matched_keywords_normalized: (analysis.triggered_keywords || []).map((k) => String(k).trim().toLowerCase()).filter(Boolean)
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2598:    risk_score: 0,
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2636:        risk_score: 0
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2691:      const existingTriggers = new Set(analysisData.triggered_keywords || []);
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2694:          analysisData.triggered_keywords.push(m.keyword);
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2710:      if (analysisData.keyword_context && analysisData.keyword_context.length > 0) {
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2711:        analysisData.keyword_context.forEach(ctx => {
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2717:    // --- Derive risk_level from risk_score using settings thresholds ---
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2718:    if (analysisData.risk_score >= high) analysisData.risk_level = 'high';
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2719:    else if (analysisData.risk_score >= medium) analysisData.risk_level = 'medium';
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2722:    logger.info(`[Analysis] Final Result for ${content.content_id}: Score=${analysisData.risk_score}, Level=${analysisData.risk_level}`);
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2725:      risk_score: Math.round(analysisData.risk_score || 0),
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2730:      violence_score: (analysisData.intent === 'Violence' || analysisData.category === 'Communal_Violence' || analysisData.category === 'Sexual_Violence' ? Math.round((analysisData.risk_score || 0) * 10) : 0) || 0,
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2731:      threat_score: (analysisData.category === 'threat' || analysisData.category === 'threat_incitement' || analysisData.category === 'Hate_Speech_Threat' || analysisData.category === 'Hate_Speech_Threat_Extremist' ? Math.round((analysisData.risk_score || 0) * 10) : 0) || 0,
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2732:      hate_score: (analysisData.category === 'Hate_Speech' || analysisData.category === 'Hate_Speech_Threat' || analysisData.category === 'Hate_Speech_Threat_Extremist' ? Math.round((analysisData.risk_score || 0) * 10) : 0) || 0,
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2733:      triggered_keywords: analysisData.triggered_keywords || [],
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2737:      highlights: analysisData.triggered_keywords || [],
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2795:        risk_score: analysisData.risk_score ?? 0,
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2809:        risk_score: analysisData.risk_score ?? 0,
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2817:      logger.info(`[Monitor] Content updated successfully. New Score: ${updateResult.risk_score}`);
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2821:    content.risk_score = analysisData.risk_score ?? 0;
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2842:        risk_score: 0
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2850:    const hasTriggeredKeywords = (analysisData.triggered_keywords || []).length > 0;
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2870:      alert_type: { $in: ['keyword_risk', 'ai_risk', null, undefined] }
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2892:        alert_type: { $in: ['keyword_risk', 'ai_risk', null, undefined] }
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2948:    detailedDescription += `**Risk Score:** ${analysisData.risk_score || 0}%`;
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2960:        alert_type: hasKeywordMatch ? 'keyword_risk' : 'ai_risk',
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2971:          highlights: analysisData.triggered_keywords || [],
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2972:          risk_score: analysisData.risk_score || 0,
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:2997:      risk_score: analysisData.risk_score ?? 0,
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:3072:    const retryLimit = Math.max(1, Number(process.env.ANALYSIS_RETRY_BATCH_SIZE || 4));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:3073:    const retryWindowHours = Math.max(1, Number(process.env.ANALYSIS_RETRY_WINDOW_HOURS || 48));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:3076:    const scanWidth = Math.max(retryLimit * 3, 12);
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:3126:        // (source_id, source_category, matched_keywords_normalized, virality).
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:3230:        nextCheckSeconds = Math.max(60, Math.ceil((quotaPause.retry_at.getTime() - Date.now()) / 1000));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:3261:        nextCheckSeconds = Math.max(30, Math.floor(soonest / 1000));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:3388:      nextCheckSeconds = Math.max(30, Math.floor(soonest / 1000));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.js:3410:        // Use per-event override, or compute from the event's selected platforms
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/openaiGlanceService.js:25:  return Number.isFinite(v) ? Math.min(Math.max(v, 900), 1400) : 1200;
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/rapidApiFacebookService.js:159:    const waitMs = Math.max(1000, nextReady - now);
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/rapidApiFacebookService.js:191:    const seconds = Math.max(1, Number(retryAfterSeconds) || getCooldownSeconds());
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/rapidApiFacebookService.js:212:            timeout: Math.max(5000, Number(options.timeoutMs) || 20000)
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/rapidApiFacebookService.js:561:        const safeLimit = Math.min(Math.max(Number(options?.limit) || 20, 1), 50);
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/rapidApiFacebookService.js:586:            ? Math.max(0, Number(options.enrichLimit))
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/rapidApiFacebookService.js:781:                    ? Math.max(3000, Math.min(Number(rapidOptions?.timeoutMs) || 12000, remainingMs - 500))
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/rapidApiFacebookService.js:992:        const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 100);
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/rapidApiFacebookService.js:994:        const deadlineMs = Math.max(8000, Number(options?.maxSearchMs) || 30000);
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/rapidApiFacebookService.js:1000:            timeoutMs: Math.min(10000, Math.max(5000, deadlineMs - 2000)),
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/grievanceService.js:379:        const adjustedLimit = Math.min(100, Math.max(limit, daysRange * 20));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/rapidApiXService.js:21:    const maxRetries = Math.max(1, parseInt(process.env.RAPIDAPI_X_MAX_RETRIES || '3', 10));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/rapidApiXService.js:22:    const baseDelay = Math.max(1000, parseInt(process.env.RAPIDAPI_X_RETRY_DELAY_MS || '4000', 10));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/rapidApiXService.js:23:    const requestTimeout = Math.max(15000, parseInt(process.env.RAPIDAPI_X_TIMEOUT_MS || '45000', 10));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/rapidApiXService.js:134:const TWEET_FETCH_CACHE_TTL_MS = Math.max(10000, parseInt(process.env.RAPIDAPI_X_TWEET_CACHE_MS || '45000', 10));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/rapidApiXService.js:135:const HANDLE_FAILURE_COOLDOWN_MS = Math.max(15000, parseInt(process.env.RAPIDAPI_X_HANDLE_COOLDOWN_MS || '90000', 10));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/rapidApiXService.js:136:const MAX_TWEET_FETCH_CACHE_ENTRIES = Math.max(20, parseInt(process.env.RAPIDAPI_X_TWEET_CACHE_MAX || '300', 10));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/rapidApiXService.js:140:const GLOBAL_RATE_LIMIT_PAUSE_MS = Math.max(30000, parseInt(process.env.RAPIDAPI_X_GLOBAL_PAUSE_MS || '60000', 10));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/rapidApiXService.js:144:const MIN_REQUEST_GAP_MS = Math.max(200, parseInt(process.env.RAPIDAPI_X_MIN_GAP_MS || '500', 10));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/rapidApiXService.js:938:        const safeLimit = Math.min(Math.max(Number(limit) || 30, 1), 50);
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/rapidApiXService.js:1576:        const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 100);
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/rapidApiXService.js:1921:    const count = Math.max(5, Math.min(parseInt(options.count, 10) || 200, 200));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/customSentimentService.js:29:const getTargetConcurrency = () => Math.max(1, Number(process.env.CUSTOM_SENTIMENT_CONCURRENCY || DEFAULT_CONCURRENCY));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/customSentimentService.js:30:const getMaxQueueSize = () => Math.max(1, Number(process.env.CUSTOM_SENTIMENT_MAX_QUEUE_SIZE || DEFAULT_MAX_QUEUE_SIZE));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/investigationQueueService.js:1:const DEFAULT_CONCURRENCY = Math.max(1, Number(process.env.INVESTIGATION_QUEUE_CONCURRENCY || 2));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/investigationQueueService.js:2:const MAX_QUEUE_SIZE = Math.max(50, Number(process.env.INVESTIGATION_QUEUE_MAX || 500));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/investigationQueueService.js:13:const getConcurrency = () => Math.max(1, Number(process.env.INVESTIGATION_QUEUE_CONCURRENCY || DEFAULT_CONCURRENCY));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/investigationQueueService.js:42:  const timeoutMs = Math.max(1000, Number(options.timeoutMs || process.env.INVESTIGATION_QUEUE_JOB_TIMEOUT_MS || 55000));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/mediaLocationService.js:213:  // populated it (e.g. author_profile is OK to override — extracted EXIF is
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/llmRelevanceSweeper.js:142:    const MAX_INFLIGHT = Math.max(2, Number(process.env.OLLAMA_CONCURRENCY || 2));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/comprehensiveReportPdfService.js:111:          report.events.top_events.slice(0, 15).map((e, i) => [i + 1, (e.event_name || '').substring(0, 30), e.event_type || 'detected', String(e.risk_score || 0), (e.platforms || []).join(', ')]), y,
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/comprehensiveReportPdfService.js:128:          report.alerts.top_5_critical.map((a, i) => [i + 1, (a.title || '').substring(0, 35), (a.category || '').substring(0, 20), String(a.risk_score), a.status || 'active']), y,
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/velocityAlertService.js:161:                            current_value: Math.max(...triggeredMetrics.map(m => m.value)),
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/velocityAlertService.js:163:                            velocity: Math.max(...triggeredMetrics.map(m => m.value)),
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/velocityAlertService.js:194:            current_value: Math.max(...triggeredMetrics.map(m => m.value)),
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/velocityAlertService.js:196:            velocity: Math.max(...triggeredMetrics.map(m => m.value)),
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/velocityAlertService.js:211:        const finalRiskScore = Math.max(Number(content.risk_score) || 0, velocityRiskScore);
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/velocityAlertService.js:233:                risk_score: finalRiskScore, // Enforced Score
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/velocityAlertService.js:262:            alert_type: { $in: ['ai_risk', 'keyword_risk'] }
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/velocityAlertService.js:295:        let finalScore = Number(content.risk_score) || 0;
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/velocityAlertService.js:299:            finalScore = Math.max(finalScore, 80);
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/velocityAlertService.js:301:            finalScore = Math.max(finalScore, 45);
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/velocityAlertService.js:304:        logger.info(`[NewPostAlert] Creating alert for ${content.id}. RiskLevel:${rLevel}, OriginalScore:${content.risk_score}, FinalScore:${finalScore}`);
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/velocityAlertService.js:324:                risk_score: finalScore || (rLevel === 'medium' ? 45 : finalScore),
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/velocityAlertService.js:348:            triggered_keywords: [
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.alert.test.js:20:  threat_details: { risk_score: 87, reasons: ['expert logic'] },
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.alert.test.js:28:    'classification_explanation', 'threat_details.risk_score',
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.alert.test.js:30:    'violated_policies', 'legal_sections', 'matched_keywords_normalized'
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.alert.test.js:42:    isUsableAnalysis({ status: ANALYSIS_STATUS.FAILED, risk_score: 0 }), false,
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.alert.test.js:50:    isUsableAnalysis({ status: ANALYSIS_STATUS.ANALYZED, risk_score: 12 }), true,
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.alert.test.js:66:  // risk_score 87 survives specifically.
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.alert.test.js:67:  const scored = alert({ risk_level: 'high', threat_details: { risk_score: 87 } });
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.alert.test.js:69:  noRiskFieldsIn(scoredUpdate, 'risk_score 87');
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorService.alert.test.js:70:  assert.strictEqual(scored.threat_details.risk_score, 87, 'risk_score must be untouched');
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/tempContentProcessor.js:13:const PROCESS_CONCURRENCY = Math.max(1, Number(process.env.ENGINE_TEMP_CONCURRENCY || 4));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/tempContentProcessor.js:15:const PROCESSING_TIMEOUT_MS = Math.max(60000, Number(process.env.ENGINE_TEMP_PROCESSING_TIMEOUT_MS || 15 * 60 * 1000));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/tempContentProcessor.js:17:const MODULE_BATCH_SIZE = Math.max(1, Number(process.env.ENGINE_TEMP_BATCH_SIZE_PER_MODULE || BATCH_SIZE));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/youtube.service.js:83:            const safeLimit = Math.min(Math.max(Number(limit) || 10, 1), 50);
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/youtube.service.js:130:            const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 100);
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/rapidApiInstagramService.js:620:    const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 50);
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/mappingService.js:74:        const deadline = Date.now() + Math.max(1000, Number(timeoutMs) || 15000);
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/mappingService.js:115:     * @returns {object} { legal_sections: [], platform_policies: [], triggered_keywords: [] }
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/mappingService.js:128:            triggered_keywords: []
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/mappingService.js:152:        result.triggered_keywords = this.extractKeywords(
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/reportPdfService.js:136:            // LEGACY MODE — clone the live page's head and inject overrides.
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/globalSearchService.js:27:        const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 50);
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/globalSearchService.js:97:        const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/comprehensiveReportService.js:195:      risk_score: eventContent.length === 0
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/comprehensiveReportService.js:206:    .sort((a, b) => b.content_count - a.content_count || b.risk_score - a.risk_score)
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/comprehensiveReportService.js:259:      const idx = Math.max(0, Math.min(HOURS - 1, Math.floor((t - start.getTime()) / bucketMs)));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/comprehensiveReportService.js:271:    category: a.source_category || 'Unknown', risk_score: a.threat_details?.risk_score || 75,
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/comprehensiveReportService.js:289:        threat_score: a.threat_details?.risk_score || (a.risk_level === 'high' ? 80 : a.risk_level === 'medium' ? 55 : 30)
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/comprehensiveReportService.js:293:      const score = a.threat_details?.risk_score;
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/comprehensiveReportService.js:313:    threat_level: a.risk_level || 'medium', related_keywords: a.matched_keywords_normalized || [],
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/comprehensiveReportService.js:409:// Falls back to the Alert.matched_keywords_normalized field when Content has no risk_factors.
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/comprehensiveReportService.js:413:    Alert.find({ created_at: { $gte: start, $lt: end } }).select('matched_keywords_normalized platform risk_level').limit(5000)
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/comprehensiveReportService.js:433:    (a.matched_keywords_normalized || []).forEach(kw => bump(kw, a.platform, null));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/comprehensiveReportService.js:656:  const lim = Math.max(1, Math.min(365, Number(limit) || 60));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/analysisService.js:11:const SHADOW_SAMPLE_RATE = Math.max(
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/analysisService.js:16:const ANALYSIS_CACHE_TTL_MS = Math.max(60000, Number(process.env.ANALYSIS_CACHE_TTL_MS || 30 * 60 * 1000));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/analysisService.js:17:const ANALYSIS_CACHE_MAX_ITEMS = Math.max(100, Number(process.env.ANALYSIS_CACHE_MAX_ITEMS || 5000));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/analysisService.js:89:            risk_score: llmResult.risk_score
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/analysisService.js:96:                risk_score: candidate.risk_score,
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/analysisService.js:114:      risk_score: 0,
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/analysisService.js:119:      triggered_keywords: []
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/analysisService.js:146:        risk_score: 0,
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/analysisService.js:152:    const finalRiskScore = llmResult.risk_score;
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/analysisService.js:196:      `sentiment=${finalSentiment}, risk_score=${finalRiskScore}` +
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/analysisService.js:220:      if (aggregatedKeywords.length === 0) aggregatedKeywords = result.triggered_keywords || [];
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/analysisService.js:226:      triggered_keywords: aggregatedKeywords
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/analysisService.js:231:      risk_score: finalRiskScore,
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/analysisService.js:237:      triggered_keywords: mappingResult.triggered_keywords || [],
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/analysisService.js:240:      highlights: mappingResult.triggered_keywords || [],
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/analysisService.js:248:      keyword_context: llmResult.keyword_context || [],
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/analysisService.js:284:      risk_score: 0,
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/analysisService.js:289:      triggered_keywords: []
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/dailyIntelligenceReportService.js:237:        risk_score: alert.threat_details?.risk_score ?? (alert.risk_level === 'high' ? 85 : alert.risk_level === 'medium' ? 60 : 35),
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/intelligenceClientService.js:6: * Ollama category / intent / risk_score / reasoning / summary / action —
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/intelligenceClientService.js:31:const MAX_TEXT_CHARS = Math.max(800, Number(process.env.INTELLIGENCE_MAX_TEXT_CHARS || 4500));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/intelligenceClientService.js:32:const MAX_ATTEMPTS = Math.max(1, Number(process.env.INTELLIGENCE_MAX_ATTEMPTS || 1));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/intelligenceClientService.js:41:    concurrency: Math.max(1, parseEnvInt(process.env.INTELLIGENCE_BULK_CONCURRENCY, 1)),
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/intelligenceClientService.js:42:    timeoutMs: Math.max(10000, parseEnvInt(process.env.INTELLIGENCE_TIMEOUT_MS, 180000)),
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/intelligenceClientService.js:44:    maxQueue: Math.max(1, parseEnvInt(process.env.INTELLIGENCE_BULK_MAX_QUEUE, 200)),
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/intelligenceClientService.js:47:    queueWaitMs: Math.max(0, parseEnvInt(process.env.INTELLIGENCE_BULK_QUEUE_WAIT_MS, 0)),
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/intelligenceClientService.js:50:    maxWaiters: Math.max(0, parseEnvInt(process.env.INTELLIGENCE_BULK_MAX_WAITERS, 5000))
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/intelligenceClientService.js:53:    concurrency: Math.max(1, parseEnvInt(process.env.INTELLIGENCE_INTERACTIVE_CONCURRENCY, 1)),
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/intelligenceClientService.js:54:    timeoutMs: Math.max(10000, parseEnvInt(process.env.INTELLIGENCE_INTERACTIVE_TIMEOUT_MS, 100000)),
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/intelligenceClientService.js:55:    maxQueue: Math.max(1, parseEnvInt(process.env.INTELLIGENCE_INTERACTIVE_MAX_QUEUE, 50)),
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/intelligenceClientService.js:56:    queueWaitMs: Math.max(0, parseEnvInt(process.env.INTELLIGENCE_INTERACTIVE_QUEUE_WAIT_MS, 0)),
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/intelligenceClientService.js:57:    maxWaiters: Math.max(0, parseEnvInt(process.env.INTELLIGENCE_INTERACTIVE_MAX_WAITERS, 500))
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/intelligenceClientService.js:273:  let riskScore = parseInt(intel.risk_score, 10);
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/intelligenceClientService.js:274:  if (Number.isNaN(riskScore) || riskScore < 0) riskScore = 0;
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/intelligenceClientService.js:275:  if (riskScore > 100) riskScore = 100;
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/intelligenceClientService.js:284:    risk_score: riskScore,
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/intelligenceClientService.js:301:    keyword_context: Array.isArray(intel.keyword_context) ? intel.keyword_context : []
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/intelligenceClientService.js:312:    timeout_s: Math.max(5, Math.min(600, Math.floor(timeoutMs / 1000) - 5))
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/intelligenceClientService.js:316:    body.matched_keywords = [matchedKeywords.map(k => ({ keyword: String(k.keyword), weight: Number(k.weight) || 50 }))];
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/investigationAnalysisService.js:10: *   Layer 4 → Hybrid merge (keyword weight overrides LLM score if higher)
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/investigationAnalysisService.js:22:const MAX_TEXT_LENGTH = Math.max(800, Number(process.env.OLLAMA_MAX_TEXT_LENGTH || 2500));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/investigationAnalysisService.js:31:  const timeoutMs = Math.max(5000, Number(process.env.OLLAMA_TIMEOUT_MS || 20000));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/investigationAnalysisService.js:32:  const maxAttempts = Math.max(1, Number(process.env.OLLAMA_INVESTIGATION_ATTEMPTS || 3));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/investigationAnalysisService.js:33:  const outputTokens = Math.max(120, Number(process.env.OLLAMA_MAX_OUTPUT_TOKENS || 240));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/investigationAnalysisService.js:75:      let riskScore = parseInt(parsed.risk_score, 10);
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/investigationAnalysisService.js:76:      if (isNaN(riskScore) || riskScore < 0) riskScore = 0;
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/investigationAnalysisService.js:77:      if (riskScore > 100) riskScore = 100;
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/investigationAnalysisService.js:83:        risk_score: riskScore,
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/investigationAnalysisService.js:114:      risk_score: 0,
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/investigationAnalysisService.js:164:      risk_score: fallbackScore,
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/investigationAnalysisService.js:191:    if (aggregatedKeywords.length === 0) aggregatedKeywords = result.triggered_keywords || [];
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/investigationAnalysisService.js:205:    if (llmResult.keyword_context && llmResult.keyword_context.length > 0) {
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/investigationAnalysisService.js:206:      llmResult.keyword_context.forEach(ctx => {
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/investigationAnalysisService.js:222:  const finalScore = llmResult.risk_score;
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/investigationAnalysisService.js:239:    risk_score: finalScore,
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/investigationAnalysisService.js:263:    keyword_context: llmResult.keyword_context || []
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/analysisJobState.js:12:  Math.max(0, Number(process.env.ANALYSIS_RETRY_COOLDOWN_MS || DEFAULT_COOLDOWN_MS));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/analysisJobState.js:15:  Math.max(1, Number(process.env.ANALYSIS_RETRY_MAX_ATTEMPTS || DEFAULT_MAX_ATTEMPTS));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/analysisJobState.js:18:  Math.max(60 * 1000, Number(process.env.ANALYSIS_PROCESSING_STALE_MS || DEFAULT_STALE_PROCESSING_MS));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/analysisJobState.js:21:  Math.max(60 * 1000, Number(process.env.ANALYSIS_LIVE_WINDOW_MS || 2 * 60 * 60 * 1000));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/analysisJobState.js:26:  return Math.min(0.9, Math.max(0.5, n));
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/analysisJobState.js:54:      retryAfterMs: Math.max(5000, (Number.isFinite(retryAfterS) ? retryAfterS : 15) * 1000)
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/emailService.js:60:                      <span class="label">Triggered Keywords:</span> ${alertData.triggered_keywords.join(', ')}
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorScanLogic.js:49:const PLATFORM_QUOTA_COOLDOWN_MS = Math.max(
+/home/cat-hyd-work-station/SOCEYE/backend/src/services/monitorScanLogic.js:165:  const ratio = Math.min(0.9, Math.max(0.5, Number(liveRatio) || 0.7));
+/home/cat-hyd-work-station/SOCEYE/backend/src/utils/profileRelevanceScorer.js:86:  let score = Math.max(profileText.score, handleText.score);
+/home/cat-hyd-work-station/SOCEYE/backend/src/utils/logger.js:8:// one day's application.log into 467 MB. LOG_LEVEL still overrides both ways.
+/home/cat-hyd-work-station/SOCEYE/backend/src/utils/logger.js:14:const RETENTION_DAYS = Math.max(1, Number(process.env.LOG_RETENTION_DAYS || 14));
+/home/cat-hyd-work-station/SOCEYE/backend/src/utils/locationResolver.js:70:   const wait = Math.max(0, MIN_INTERVAL_MS - (Date.now() - lastCallAt));
+/home/cat-hyd-work-station/SOCEYE/backend/src/routes/x.routes.js:122:        const safeDays = Math.max(1, Math.min(Number(days) || 7, 365));
+/home/cat-hyd-work-station/SOCEYE/backend/src/routes/x.routes.js:123:        const safeLimit = Math.max(5, Math.min(Number(limit) || 25, 5000));
+/home/cat-hyd-work-station/SOCEYE/backend/src/routes/x.routes.js:124:        const safeMaxTweets = Math.max(1, Math.min(Number(req.query.max_tweets) || 8, 15));
+/home/cat-hyd-work-station/SOCEYE/backend/src/routes/x.routes.js:125:        const safeMaxRetweeters = Math.max(10, Math.min(Number(req.query.max_retweeters) || 80, 120));
+/home/cat-hyd-work-station/SOCEYE/backend/src/routes/x.routes.js:197:        const safePeriod = Math.max(1, Math.min(Number(periodDays) || 30, 90));
+/home/cat-hyd-work-station/SOCEYE/backend/src/routes/comprehensiveReportRoutes.js:88:    const hours = Math.max(1, Math.min(168, parseInt(req.query.hours, 10) || 24));
+/home/cat-hyd-work-station/SOCEYE/backend/src/routes/youtube.routes.js:255:                const { risk_score: maxScore, risk_level: riskLevel, evidence, triggered_keywords, intent, reasons, highlights } = analysisResult;
+/home/cat-hyd-work-station/SOCEYE/backend/src/routes/youtube.routes.js:272:                    risk_score: maxScore,
+/home/cat-hyd-work-station/SOCEYE/backend/src/routes/youtube.routes.js:294:                    triggered_keywords: triggered_keywords || [],
+/home/cat-hyd-work-station/SOCEYE/backend/src/routes/youtube.routes.js:299:                if ((triggered_keywords && triggered_keywords.length > 0) || maxScore >= (settings?.medium_risk_threshold ?? 40)) {
+/home/cat-hyd-work-station/SOCEYE/backend/src/routes/youtube.routes.js:332:                                risk_score: maxScore,
+/home/cat-hyd-work-station/SOCEYE/backend/src/routes/youtube.routes.js:369:                        triggered_keywords: analysisResult.triggered_keywords || [],
+/home/cat-hyd-work-station/SOCEYE/backend/src/routes/youtube.routes.js:592:                                risk_score: 0
+/home/cat-hyd-work-station/SOCEYE/backend/src/routes/youtube.routes.js:626:                        const maxScore = Math.max(hateScore, violenceScore, sensitiveScore, threatScore);
+/home/cat-hyd-work-station/SOCEYE/backend/src/routes/youtube.routes.js:665:                        content.risk_score = maxScore;
+/home/cat-hyd-work-station/SOCEYE/backend/src/routes/youtube.routes.js:728:                    sentiment: analysis.riskScore > 50 ? 'negative' : 'neutral',
+/home/cat-hyd-work-station/SOCEYE/backend/src/routes/youtube.routes.js:729:                    threat_score: analysis.riskScore,
+/home/cat-hyd-work-station/SOCEYE/backend/src/index.js:40:const DB_TRACE_MAX_CHARS = Math.max(200, Number(process.env.DB_TRACE_MAX_CHARS || 2000));
+/home/cat-hyd-work-station/SOCEYE/backend/src/index.js:535:  const intervalMs = Math.max(60 * 1000, Number(process.env.LLM_SWEEP_INTERVAL_MS || 5 * 60 * 1000));
+/home/cat-hyd-work-station/SOCEYE/backend/src/index.js:536:  const batch = Math.max(10, Number(process.env.LLM_SWEEP_BATCH || 100));
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_risk_pipeline.js:89:      groupBy: '$risk_score',
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_risk_pipeline.js:95:  say(`stored risk_score distribution (boundary = lower bound):`);
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_risk_pipeline.js:112:  const agreed = await Analysis.countDocuments({ $expr: { $eq: ['$risk_score', '$llm_analysis.score'] } });
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_risk_pipeline.js:113:  const raised = await Analysis.countDocuments({ $expr: { $gt: ['$risk_score', '$llm_analysis.score'] } });
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_risk_pipeline.js:114:  const lowered = await Analysis.countDocuments({ $expr: { $lt: ['$risk_score', '$llm_analysis.score'] } });
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_risk_pipeline.js:116:  say(`stored >  model (override fired): ${raised}`);
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_risk_pipeline.js:120:    'llm_analysis.score': { $lt: medium }, risk_score: { $gte: medium, $lt: high }
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_risk_pipeline.js:123:    'llm_analysis.score': { $lt: high }, risk_score: { $gte: high }
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_risk_pipeline.js:126:    'llm_analysis.score': { $lt: medium }, risk_score: { $gte: high }
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_risk_pipeline.js:136:    { $match: { $expr: { $gt: ['$risk_score', '$llm_analysis.score'] } } },
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_risk_pipeline.js:137:    { $unwind: '$triggered_keywords' },
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_risk_pipeline.js:138:    { $group: { _id: '$triggered_keywords', n: { $sum: 1 } } },
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_risk_pipeline.js:142:  say(`\nterms present on override-fired analyses (source-tagged):`);
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_risk_pipeline.js:170:      .select('id content_id author author_handle platform text risk_score risk_level threat_intent risk_factors -_id')
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_risk_pipeline.js:174:      .select('risk_score risk_level intent triggered_keywords llm_analysis explanation -_id')
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_risk_pipeline.js:178:    say(`  content.risk=${doc.risk_score}/${doc.risk_level} intent=${doc.threat_intent}`);
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_risk_pipeline.js:182:      say(`  stored analysis: ${an.risk_score}/${an.risk_level}`);
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_risk_pipeline.js:183:      say(`  triggered_keywords: ${JSON.stringify(an.triggered_keywords || [])}`);
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_high_override.js:12:  const sample = await Analysis.find({ 'llm_analysis.score': { $lt: 40 }, risk_score: { $gte: 70 } })
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_high_override.js:13:    .select('content_id risk_score triggered_keywords analyzed_at llm_analysis.score -_id')
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_high_override.js:39:  const withScore80 = await Analysis.countDocuments({ risk_score: 80 });
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_high_override.js:40:  const withScore50 = await Analysis.countDocuments({ risk_score: 50 });
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_cases.js:30:    .select('risk_score risk_level intent triggered_keywords llm_analysis explanation reasons -_id')
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_cases.js:39:  say(`  CONTENT: risk=${doc.risk_score}/${doc.risk_level} intent=${doc.threat_intent}`);
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_cases.js:43:    say(`  STORED:  score=${an.risk_score} level=${an.risk_level}`);
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_cases.js:44:    const tk = an.triggered_keywords || [];
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_cases.js:66:  const select = 'id content_id author author_handle platform text risk_score risk_level threat_intent risk_factors -_id';
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_cases.js:80:  const worst = await Analysis.find({ 'llm_analysis.score': { $lt: 40 }, risk_score: { $gte: 70 } })
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_cases.js:81:    .select('content_id risk_score triggered_keywords llm_analysis.score llm_analysis.category -_id')
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_cases.js:86:    const scoring = (w.triggered_keywords || []).filter((k) => kwSet.has(String(k).toLowerCase()));
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_cases.js:87:    say(`  @${c?.author_handle} model=${w.llm_analysis?.score}/${w.llm_analysis?.category} stored=${w.risk_score}`);
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_keyword_risk.js:4:// Layer 1 of performFullAnalysis() overrides the model score with the highest
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_keyword_risk.js:10://   node src/scripts/audit_keyword_risk.js
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_keyword_risk.js:49:  // 2. How many stored analyses were pushed up by that override?
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_keyword_risk.js:50:  // llm_analysis.score is the model's own score, written before the override,
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_keyword_risk.js:64:    { $unwind: '$triggered_keywords' },
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_keyword_risk.js:65:    { $group: { _id: '$triggered_keywords', n: { $sum: 1 } } },
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_keyword_risk.js:77:    .select('content_id risk_score risk_level triggered_keywords llm_analysis.score llm_analysis.category -_id')
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_keyword_risk.js:83:      `  content=${s.content_id} stored=${s.risk_score}/${s.risk_level} ` +
+/home/cat-hyd-work-station/SOCEYE/backend/src/scripts/audit_keyword_risk.js:85:      `terms=[${(s.triggered_keywords || []).join(', ')}]`
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/grievanceController.js:147:    // If a specific top navbar status filter is active, it should override or merge with tab
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/grievanceController.js:1130:        const legacyPending = Math.max(0, noGWorkflowCount - legacyClosed - legacyFir);
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/eventController.js:336:      const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/eventController.js:337:      const limit = Math.max(1, Math.min(200, parseInt(req.query.limit, 10) || 50));
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/eventController.js:482:      if (x != null) update['api_config.events.x'] = Math.max(5, Math.min(1440, Number(x) || 60));
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/eventController.js:483:      if (instagram != null) update['api_config.events.instagram'] = Math.max(5, Math.min(1440, Number(instagram) || 60));
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/eventController.js:484:      if (facebook != null) update['api_config.events.facebook'] = Math.max(5, Math.min(1440, Number(facebook) || 60));
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/eventController.js:485:      if (youtube != null) update['api_config.events.youtube'] = Math.max(5, Math.min(1440, Number(youtube) || 60));
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/analyticsController.js:135:    pending_action: Math.max(total - actionTaken, 0)
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/analyticsController.js:362:      Math.max(Math.floor((startOfDay(trendEnd).getTime() - startOfDay(trendStart).getTime()) / DAY_MS) + 1, 1),
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/exportController.js:236:                    return Math.max(28, textHeight + 10); // Min 28px height
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/searchController.js:117:        const parsedLimit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 50);
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/searchController.js:159:        const parsedLimit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/searchController.js:283:        const parsedPage = Math.max(Number(page) || 1, 1);
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/searchController.js:403:                totalPages: Math.max(Math.ceil(total / parsedLimit), 1)
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/alertController.js:283:        query.alert_type = { $in: ['keyword_risk', 'ai_risk', null] };
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/alertController.js:384:      const kwOr = [{ matched_keywords_normalized: kw }];
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/alertController.js:688:    if (alert_type === 'risk') query.alert_type = { $in: ['keyword_risk', 'ai_risk', null] };
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/alertController.js:725:    const kwOr = [{ matched_keywords_normalized: kw }];
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/alertController.js:1623:        timeoutMs: Math.max(5000, Number(process.env.INVESTIGATION_QUEUE_JOB_TIMEOUT_MS || 55000)),
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/alertController.js:1632:        risk_score: 10,
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/alertController.js:1655:          risk_score: analysis.risk_score || 0,
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/alertController.js:1688:              risk_score: analysis.risk_score || contentRecord.risk_score || 0,
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/alertController.js:1748:        matched_keywords_normalized: (analysis?.highlights || []).map((k) => String(k).trim().toLowerCase()).filter(Boolean),
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/alertController.js:1757:          risk_score: analysis.risk_score || 0
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/alertController.js:1780:      matched_keywords_normalized: alertRecord.matched_keywords_normalized || [],
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/intelligenceDashboardController.js:181:      { $unwind: '$matched_keywords_normalized' },
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/intelligenceDashboardController.js:182:      { $group: { _id: '$matched_keywords_normalized', count: { $sum: 1 } } },
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/dailyProgrammeController.js:287:    return Math.max(...numbers.map(Number));
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/grievanceWorkflowController.js:1125:    const ms = Math.max(0, e - s), mins = Math.floor(ms / 60000), hrs = Math.floor(mins / 60), days = Math.floor(hrs / 24);
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/instagramStoryController.js:49:    const parsedLimit = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 500);
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/instagramStoryController.js:50:    const parsedPage = Math.max(parseInt(page, 10) || 1, 1);
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/contentController.js:130:    const pageNum = Math.max(1, parseInt(page) || 1);
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/contentController.js:131:    const limitNum = Math.max(1, parseInt(limit) || 20);
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/contentController.js:183:          has_risk_alert: { $gt: [{ $size: { $filter: { input: '$alerts', as: 'a', cond: { $in: ['$$a.alert_type', ['keyword_risk', 'ai_risk']] } } } }, 0] },
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/contentController.js:190:              { $gt: [{ $size: { $filter: { input: '$alerts', as: 'a', cond: { $in: ['$$a.alert_type', ['keyword_risk', 'ai_risk']] } } } }, 0] }
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/contentController.js:267:                    cond: { $in: ['$$a.alert_type', ['keyword_risk', 'ai_risk']] }
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/contentController.js:313:                        cond: { $in: ['$$a.alert_type', ['keyword_risk', 'ai_risk']] }
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/contentController.js:371:    const pageNum = Math.max(1, parseInt(page) || 1);
+/home/cat-hyd-work-station/SOCEYE/backend/src/controllers/contentController.js:372:    const limitNum = Math.max(1, parseInt(limit) || 20); // Default to 20 for sources page comfort
