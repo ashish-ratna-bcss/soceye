@@ -158,6 +158,12 @@ const contentSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  // Poster's profile picture for content with no monitored Source behind it
+  // (URL investigations). AlertCards reads `content.author_avatar` directly.
+  author_avatar: {
+    type: String,
+    default: ''
+  },
   published_at: {
     type: Date,
     required: true

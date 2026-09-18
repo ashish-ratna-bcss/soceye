@@ -424,7 +424,7 @@ const getAlerts = async (req, res) => {
     // Join content + source for only visible rows
     const contentIds = Array.from(new Set(alerts.map((a) => a.content_id || a.content_ref_id).filter(Boolean)));
     const contents = await Content.find({ id: { $in: contentIds } })
-      .select('id content_id platform content_type content_url text author_handle published_at engagement media is_deleted deleted_at is_expired expired_at availability_status is_repost original_author original_author_name original_author_avatar quoted_content url_cards thumbnails risk_factors risk_level source_id translated_text scraped_content location media_location')
+      .select('id content_id platform content_type content_url text author author_handle author_avatar published_at engagement media is_deleted deleted_at is_expired expired_at availability_status is_repost original_author original_author_name original_author_avatar quoted_content url_cards thumbnails risk_factors risk_level source_id translated_text scraped_content location media_location')
       .lean();
 
     // For Facebook content with empty media, try to extract from raw_data
@@ -930,7 +930,9 @@ const getAlertById = async (req, res) => {
             content_type: '$content_data.content_type',
             content_url: '$content_data.content_url',
             text: '$content_data.text',
+            author: '$content_data.author',
             author_handle: '$content_data.author_handle',
+            author_avatar: '$content_data.author_avatar',
             published_at: '$content_data.published_at',
             media: '$content_data.media',
             is_deleted: '$content_data.is_deleted',
@@ -988,92 +990,10 @@ const resolveShortenedUrl = async (url, maxRedirects = 3) => {
   return url;
 };
 
-const resolveCanonicalFacebookPostUrl = async (url) => {
-  const candidates = buildFacebookShareCandidates(url);
-  let best = url;
-
-  for (const candidate of candidates) {
-    const redirected = await resolveUrlViaGetRedirects(candidate);
-    const redirectedPath = safeParseUrl(redirected)?.pathname || '';
-    if (redirected && !/\/share\/(?:v|r|p)\//i.test(redirectedPath)) {
-      return redirected;
-    }
-
-    try {
-      const response = await axios.get(candidate, {
-        timeout: 20000,
-        maxRedirects: 5,
-        responseType: 'text',
-        validateStatus: () => true,
-        headers: buildSocialScrapeHeaders(candidate, 'facebook')
-      });
-
-      const finalUrl = response?.request?.res?.responseUrl || response?.request?.responseURL || redirected || candidate;
-      const finalPath = safeParseUrl(finalUrl)?.pathname || '';
-      if (finalUrl && !/\/share\/(?:v|r|p)\//i.test(finalPath)) {
-        best = finalUrl;
-      }
-
-      const html = typeof response?.data === 'string' ? response.data : '';
-      if (html) {
-        const $ = cheerio.load(html);
-        const ogUrl = $('meta[property="og:url"]').attr('content')
-          || $('link[rel="canonical"]').attr('href')
-          || '';
-        if (ogUrl) {
-          const absoluteOgUrl = ogUrl.startsWith('http') ? ogUrl : new URL(ogUrl, finalUrl || candidate).href;
-          const ogPath = safeParseUrl(absoluteOgUrl)?.pathname || '';
-          if (!/\/share\/(?:v|r|p)\//i.test(ogPath)) {
-            return absoluteOgUrl;
-          }
-        }
-      }
-    } catch (error) {
-      logger.info(`[Investigation] Facebook canonical URL scrape failed for ${candidate}: ${error.message}`);
-    }
-  }
-
-  return best;
-};
-
-const resolveUrlViaGetRedirects = async (url) => {
-  try {
-    const response = await axios.get(url, {
-      timeout: 20000,
-      maxRedirects: 5,
-      responseType: 'text',
-      validateStatus: () => true,
-      headers: {
-        ...buildSocialScrapeHeaders(url, 'facebook')
-      }
-    });
-
-    const finalUrl = response?.request?.res?.responseUrl || response?.request?.responseURL || url;
-    return finalUrl || url;
-  } catch (_) {
-    return url;
-  }
-};
-
-const buildFacebookShareCandidates = (url) => {
-  const candidates = new Set([url]);
-  const parsed = safeParseUrl(url);
-  if (!parsed) return Array.from(candidates);
-
-  const host = parsed.hostname.toLowerCase();
-  const path = parsed.pathname || '';
-  if (/\/share\/(?:v|r|p)\//i.test(path) && host.includes('facebook.com')) {
-    const mUrl = new URL(parsed.href);
-    mUrl.hostname = host.replace(/^www\./i, 'm.');
-    candidates.add(mUrl.href);
-
-    const mbasicUrl = new URL(parsed.href);
-    mbasicUrl.hostname = host.replace(/^www\./i, 'mbasic.');
-    candidates.add(mbasicUrl.href);
-  }
-
-  return Array.from(candidates);
-};
+// NOTE: the Facebook share-link resolver that used to live here
+// (resolveCanonicalFacebookPostUrl / resolveUrlViaGetRedirects /
+// buildFacebookShareCandidates) was an unreferenced duplicate of
+// services/facebookCanonicalResolver.js. Removed so there is one resolver.
 
 const safeParseUrl = (value) => {
   const raw = String(value || '').trim();
@@ -1650,6 +1570,7 @@ const investigateLink = async (req, res) => {
           text: metadata.text || metadata.description || metadata.title,
           author: metadata.author || metadata.channelTitle || 'Unknown',
           author_handle: metadata.author_handle || metadata.channelId || 'unknown',
+          author_avatar: metadata.author_avatar || '',
           published_at: metadata.created_at || metadata.publishedAt || new Date(),
           media: metadata.media || [],
           risk_score: analysis.risk_score || 0,
@@ -1682,6 +1603,7 @@ const investigateLink = async (req, res) => {
               text: nextText,
               author: metadata.author || metadata.channelTitle || contentRecord.author,
               author_handle: metadata.author_handle || metadata.channelId || contentRecord.author_handle,
+              author_avatar: metadata.author_avatar || contentRecord.author_avatar || '',
               published_at: metadata.created_at || metadata.publishedAt || contentRecord.published_at,
               media: nextMedia,
               engagement: nextEngagement,
@@ -1785,6 +1707,13 @@ const investigateLink = async (req, res) => {
       platform: alertRecord.platform,
       author: alertRecord.author,
       author_handle: alertRecord.author_handle,
+      // ReasonModal/AlertCards gate "Review Original Source" and media
+      // resolution on `alert.content_url` at the TOP level, not
+      // `content_details.content_url`. The Alert document itself has always
+      // stored this correctly (see Alert.create below) — it just never made
+      // it into this response, so the button was invisible until the page
+      // re-fetched the alert list from the DB.
+      content_url: alertRecord.content_url,
       created_at: alertRecord.created_at,
       status: alertRecord.status,
       is_investigation: true,

@@ -9,6 +9,19 @@ const CHROME_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 
 
 const isFacebookShareUrl = (value) => /\/share\/(?:v|r|p)\//i.test(String(value || ''));
 
+// Query params that are part of a post's identity and must survive normalisation.
+// Dropping these turned `profile.php?id=...` into `/profile.php` and `watch/?v=...`
+// into `/watch`, both of which are dead links.
+const IDENTITY_QUERY_KEYS = ['id', 'story_fbid', 'fbid', 'v', 'video_id'];
+
+// First path segment values that are Facebook routes, not page/profile owners.
+const NON_OWNER_SEGMENTS = new Set([
+  'reel', 'reels', 'watch', 'video', 'videos', 'posts', 'post', 'photo', 'photos',
+  'permalink.php', 'story.php', 'share', 'groups', 'events', 'marketplace', 'media',
+  'pages', 'people', 'p', 'story', 'l.php', 'login.php', 'plugins', 'ajax', 'search',
+  'privacy', 'help', 'policies', 'watchparty', 'gaming', 'live'
+]);
+
 const safeParseUrl = (value) => {
   const raw = String(value || '').trim();
   if (!raw) return null;
@@ -44,40 +57,149 @@ const extractPfbidFromText = (value) => {
   return match?.[1] || '';
 };
 
+/**
+ * Owner (page / profile) segment of a Facebook URL.
+ *   https://www.facebook.com/saiyadav.hindu.52/videos/...  -> 'saiyadav.hindu.52'
+ *   https://www.facebook.com/profile.php?id=123            -> 'profile.php?id=123'
+ *   https://www.facebook.com/reel/2508059666357345/        -> ''  (owner-less route)
+ */
+const extractOwnerSegment = (value) => {
+  const parsed = safeParseUrl(value);
+  if (!parsed) return '';
+  if (!/(^|\.)facebook\.com$/i.test(parsed.hostname)) return '';
+
+  const parts = (parsed.pathname || '').split('/').filter(Boolean);
+  if (parts.length === 0) return '';
+
+  let first;
+  try {
+    first = decodeURIComponent(parts[0]);
+  } catch {
+    first = parts[0];
+  }
+
+  const lowered = first.toLowerCase();
+
+  if (lowered === 'profile.php') {
+    const id = parsed.searchParams.get('id');
+    return id && /^\d+$/.test(id) ? `profile.php?id=${id}` : '';
+  }
+
+  if (NON_OWNER_SEGMENTS.has(lowered)) return '';
+  // A bare numeric first segment is an entity id, which is a valid owner.
+  return first;
+};
+
+/** Display handle for the owner - the numeric id for profile.php URLs. */
+const extractOwnerHandle = (value) => {
+  const segment = extractOwnerSegment(value);
+  if (!segment) return '';
+  const profileMatch = segment.match(/^profile\.php\?id=(\d+)$/i);
+  return profileMatch ? profileMatch[1] : segment;
+};
+
+/**
+ * Post id for every Facebook permalink shape we ingest - not just `/posts/<id>`.
+ * Reels and videos were previously invisible here, so identityIsCanonical()
+ * could never verify them and the resolver fell back to hunting for a pfbid.
+ */
 const extractNumericPostIdFromUrl = (value) => {
   const parsed = safeParseUrl(value);
   if (!parsed) return '';
-  const pathMatch = parsed.pathname.match(/\/posts\/(\d{8,})\/?$/i);
-  if (pathMatch?.[1]) return pathMatch[1];
-  const storyFbid = parsed.searchParams.get('story_fbid');
-  if (storyFbid && /^\d+$/.test(storyFbid)) return storyFbid;
+  const pathname = parsed.pathname || '';
+
+  // /<owner>/posts/<id>  |  /posts/<id>
+  const postsMatch = pathname.match(/\/posts\/(\d{6,})(?:\/|$)/i);
+  if (postsMatch?.[1]) return postsMatch[1];
+
+  // /reel/<id> | /videos/<id> | /watch/<id> | /photo/<id> | /permalink/<id>
+  const mediaMatch = pathname.match(/\/(?:reels?|videos?|watch|photos?|permalink)\/(\d{6,})(?:\/|$)/i);
+  if (mediaMatch?.[1]) return mediaMatch[1];
+
+  // /<owner>/videos/<slug>/<id>/ - the shape Facebot returns for reels
+  const trailingMatch = pathname.match(/\/(?:reels?|videos?|photos?)\/[^/]+\/(\d{6,})(?:\/|$)/i);
+  if (trailingMatch?.[1]) return trailingMatch[1];
+
+  for (const key of IDENTITY_QUERY_KEYS) {
+    if (key === 'id') continue; // `id` on profile.php is the page, not the post
+    const q = parsed.searchParams.get(key);
+    if (q && /^\d{6,}$/.test(q)) return q;
+  }
+
   return '';
 };
 
+/**
+ * Collapse /<owner>/videos/<very-long-slug>/<id> to /<owner>/videos/<id>.
+ * Facebook resolves both to the same post, but the slug form runs to ~700
+ * characters for a non-Latin caption, which is unusable in a WhatsApp share
+ * or a printed PDF report.
+ */
+const compactPermalinkPath = (pathname) => String(pathname || '').replace(
+  /^\/([^/]+)\/(videos?|reels?|photos?)\/[^/]+\/(\d{6,})$/i,
+  (_match, owner, kind, id) => `/${owner}/${kind}/${id}`
+);
+
+/** Normalise to https://www.facebook.com/<path>, preserving identity query params. */
 const stripFacebookUrl = (value) => {
   const parsed = safeParseUrl(value);
   if (!parsed) return String(value || '').trim();
-  parsed.hash = '';
-  const path = (parsed.pathname || '').replace(/\/+$/, '');
-  return `https://${parsed.hostname.replace(/^m\./i, 'www.')}${path}`;
+
+  const path = compactPermalinkPath((parsed.pathname || '').replace(/\/+$/, ''));
+  const host = parsed.hostname.replace(/^(m|mbasic|web)\./i, 'www.');
+
+  const kept = new URLSearchParams();
+  for (const key of IDENTITY_QUERY_KEYS) {
+    const val = parsed.searchParams.get(key);
+    if (val) kept.set(key, val);
+  }
+  const query = kept.toString();
+
+  return `https://${host}${path}${query ? `?${query}` : ''}`;
 };
 
+/**
+ * Place a pfbid under its owning page. Returns '' when no owner is known.
+ *
+ * It previously returned `https://www.facebook.com/posts/<token>` in that case,
+ * which is not a Facebook route at all - that synthesised URL is what shipped to
+ * operators as "Review Original Source" and 404'd.
+ */
 const buildCanonicalPfbidUrl = (finalUrl, pfbid) => {
-  const fromFinal = extractPfbidFromText(finalUrl);
-  const token = pfbid || fromFinal;
-  if (!token) return stripFacebookUrl(finalUrl);
+  const token = pfbid || extractPfbidFromText(finalUrl);
+  if (!token) return '';
 
   const parsed = safeParseUrl(finalUrl);
-  if (!parsed) return `https://www.facebook.com/posts/${token}`;
+  if (!parsed) return '';
 
   const pathParts = (parsed.pathname || '').split('/').filter(Boolean);
   const postsIdx = pathParts.findIndex((p) => p.toLowerCase() === 'posts');
   if (postsIdx > 0) {
-    const page = pathParts.slice(0, postsIdx).join('/');
-    return `https://www.facebook.com/${page}/posts/${token}`;
+    const owner = pathParts.slice(0, postsIdx).join('/');
+    return `https://www.facebook.com/${owner}/posts/${token}`;
   }
 
-  return `https://www.facebook.com/posts/${token}`;
+  const owner = extractOwnerSegment(finalUrl);
+  if (owner) return `https://www.facebook.com/${owner}/posts/${token}`;
+
+  return '';
+};
+
+/**
+ * A pfbid is only this post's identity when it arrives attached to its owner.
+ * The previous `html.match(/pfbid[a-z0-9]+/gi)[0]` took the first pfbid anywhere
+ * in ~480 KB of markup - routinely a suggested reel or a neighbouring post.
+ */
+const extractOwnedPfbidUrlFromHtml = (html) => {
+  const match = String(html || '').match(
+    /facebook\.com\\?\/([A-Za-z0-9.\-%]{3,60})\\?\/posts\\?\/(pfbid[a-z0-9]+)/i
+  );
+  if (!match) return { url: '', pfbid: '' };
+
+  const owner = match[1];
+  if (NON_OWNER_SEGMENTS.has(owner.toLowerCase())) return { url: '', pfbid: '' };
+
+  return { url: `https://www.facebook.com/${owner}/posts/${match[2]}`, pfbid: match[2] };
 };
 
 const extractOgMedia = (html) => {
@@ -102,6 +224,32 @@ const extractOgMedia = (html) => {
   if (video) media.push({ type: 'video', url: video });
 
   return media;
+};
+
+/**
+ * Pick the canonical URL, strongest evidence first.
+ * og:url is Facebook's own answer and must outrank anything we assemble.
+ */
+const chooseCanonicalUrl = ({ ogUrl, finalUrl, pfbid, ownedPfbidUrl }) => {
+  const ogCandidate = ogUrl && !isFacebookShareUrl(ogUrl) ? stripFacebookUrl(ogUrl) : '';
+
+  // 1. og:url that names its owner - best possible answer.
+  if (ogCandidate && extractOwnerSegment(ogCandidate)) return ogCandidate;
+
+  // 2. A pfbid seen together with its owner.
+  if (ownedPfbidUrl) return stripFacebookUrl(ownedPfbidUrl);
+
+  // 3. pfbid placed under an owner taken from the resolved URL.
+  const built = buildCanonicalPfbidUrl(finalUrl, pfbid);
+  if (built) return built;
+
+  // 4. Owner-less og:url (e.g. /reel/<id>/). A real, working Facebook link.
+  if (ogCandidate) return ogCandidate;
+
+  // 5. The redirect target, if it escaped /share/.
+  if (finalUrl && !isFacebookShareUrl(finalUrl)) return stripFacebookUrl(finalUrl);
+
+  return '';
 };
 
 const fetchFacebookPageSnapshot = async (url, userAgent) => {
@@ -133,17 +281,32 @@ const fetchFacebookPageSnapshot = async (url, userAgent) => {
     ? (ogUrl.startsWith('http') ? ogUrl : new URL(ogUrl, finalUrl).href)
     : '';
 
-  const pfbidFromFinal = extractPfbidFromText(finalUrl);
-  const pfbidFromOg = extractPfbidFromText(absoluteOgUrl);
-  const pfbidsInHtml = [...new Set((html.match(/pfbid[a-z0-9]+/gi) || []))];
-  const pfbid = pfbidFromFinal || pfbidFromOg || pfbidsInHtml[0] || '';
+  const owned = extractOwnedPfbidUrlFromHtml(html);
+  const pfbid = extractPfbidFromText(finalUrl)
+    || extractPfbidFromText(absoluteOgUrl)
+    || owned.pfbid
+    || '';
 
-  const numericId = extractNumericPostIdFromUrl(absoluteOgUrl)
+  const canonicalUrl = chooseCanonicalUrl({
+    ogUrl: absoluteOgUrl,
+    finalUrl,
+    pfbid,
+    ownedPfbidUrl: owned.url
+  });
+
+  const numericId = extractNumericPostIdFromUrl(canonicalUrl)
+    || extractNumericPostIdFromUrl(absoluteOgUrl)
     || extractNumericPostIdFromUrl(finalUrl);
 
-  const canonicalUrl = pfbid
-    ? buildCanonicalPfbidUrl(finalUrl, pfbid)
-    : stripFacebookUrl(absoluteOgUrl || finalUrl);
+  const ownerSlug = extractOwnerHandle(canonicalUrl)
+    || extractOwnerHandle(absoluteOgUrl)
+    || extractOwnerHandle(finalUrl);
+
+  // og:site_name is "Facebook" (or empty) on post pages, never the poster.
+  // og:title on a reel is "2.1K views - 58 reactions | <post text>" - it is the
+  // post, not the author, and must never be promoted to an author name.
+  const siteName = readMeta('meta[property="og:site_name"]');
+  const authorName = siteName && siteName.toLowerCase() !== 'facebook' ? siteName : '';
 
   return {
     status: response.status,
@@ -153,10 +316,12 @@ const fetchFacebookPageSnapshot = async (url, userAgent) => {
     canonicalUrl,
     pfbid,
     numericId,
+    ownerSlug,
+    authorName,
     title: readMeta('meta[property="og:title"]') || $('title').text().trim(),
     description: readMeta('meta[property="og:description"]')
       || readMeta('meta[name="description"]'),
-    author: readMeta('meta[property="og:site_name"]') || '',
+    author: authorName,
     media: extractOgMedia(html),
     htmlLen: html.length,
     userAgent
@@ -164,8 +329,34 @@ const fetchFacebookPageSnapshot = async (url, userAgent) => {
 };
 
 /**
- * Resolve a Facebook post URL (especially /share/...) to canonical pfbid identity.
- * Uses crawler UA when browser UA cannot resolve share links.
+ * How much do we trust this snapshot's canonical identity?
+ *   3 - owner + post id (fully addressable permalink)
+ *   2 - owner only
+ *   1 - post id only (e.g. /reel/<id>/ - works, but anonymous)
+ *   0 - unusable
+ */
+const scoreSnapshot = (snapshot) => {
+  const canonical = snapshot?.canonicalUrl || '';
+  if (!canonical || isFacebookShareUrl(canonical)) return 0;
+
+  const hasOwner = Boolean(extractOwnerSegment(canonical));
+  const hasId = Boolean(
+    snapshot.pfbid || snapshot.numericId || extractNumericPostIdFromUrl(canonical)
+  );
+
+  if (hasOwner && hasId) return 3;
+  if (hasOwner) return 2;
+  if (hasId) return 1;
+  return 0;
+};
+
+/**
+ * Resolve a Facebook post URL (especially /share/...) to its canonical identity.
+ *
+ * Every host/UA combination is scored and the best one wins, rather than the
+ * first that merely escaped /share/. For reels the crawler UA answers with the
+ * owner-less /reel/<id>/ while Facebot answers with
+ * /<owner>/videos/<slug>/<id>/ - only the latter carries the poster's handle.
  */
 const resolveFacebookCanonicalPost = async (url) => {
   const input = String(url || '').trim();
@@ -174,6 +365,7 @@ const resolveFacebookCanonicalPost = async (url) => {
     canonicalUrl: input,
     pfbid: '',
     numericId: '',
+    ownerSlug: '',
     ogUrl: '',
     title: '',
     description: '',
@@ -187,68 +379,66 @@ const resolveFacebookCanonicalPost = async (url) => {
 
   const candidates = buildFacebookShareCandidates(input);
   const userAgents = isFacebookShareUrl(input)
-    ? [FACEBOOK_CRAWLER_UA, FACEBOOK_FACEBOT_UA, CHROME_UA]
-    : [CHROME_UA, FACEBOOK_CRAWLER_UA];
+    ? [FACEBOOK_FACEBOT_UA, FACEBOOK_CRAWLER_UA, CHROME_UA]
+    : [CHROME_UA, FACEBOOK_CRAWLER_UA, FACEBOOK_FACEBOT_UA];
+
+  let best = null;
+  let bestScore = 0;
 
   for (const candidate of candidates) {
     for (const userAgent of userAgents) {
       try {
         const snapshot = await fetchFacebookPageSnapshot(candidate, userAgent);
-        const finalPath = safeParseUrl(snapshot.finalUrl)?.pathname || '';
-        const hasPfbid = Boolean(snapshot.pfbid);
-        const escapedShare = !isFacebookShareUrl(snapshot.finalUrl) && !isFacebookShareUrl(snapshot.canonicalUrl);
+        const score = scoreSnapshot(snapshot);
 
-        if (hasPfbid && escapedShare) {
-          const resolved = {
-            ...result,
-            canonicalUrl: snapshot.canonicalUrl,
-            pfbid: snapshot.pfbid,
-            numericId: snapshot.numericId,
-            ogUrl: snapshot.ogUrl,
-            title: snapshot.title,
-            description: snapshot.description,
-            author: snapshot.title || snapshot.author,
-            media: snapshot.media,
-            resolvedVia: userAgent.includes('facebookexternalhit') || userAgent === FACEBOOK_FACEBOT_UA
-              ? 'crawler_ua'
-              : 'browser_ua',
-            snapshot
-          };
-          logger.info(
-            `[FacebookCanonical] Resolved ${input} -> ${resolved.canonicalUrl} (pfbid=${resolved.pfbid}, via=${resolved.resolvedVia})`
-          );
-          return resolved;
+        if (score > bestScore) {
+          bestScore = score;
+          best = snapshot;
         }
 
-        if (!isFacebookShareUrl(input) && escapedShare && snapshot.canonicalUrl !== input) {
-          const token = extractFacebookPostToken(snapshot.canonicalUrl);
-          if (token && !isFacebookShareUrl(snapshot.canonicalUrl)) {
-            return {
-              ...result,
-              canonicalUrl: snapshot.canonicalUrl,
-              pfbid: extractPfbidFromText(snapshot.canonicalUrl) || token,
-              numericId: snapshot.numericId,
-              ogUrl: snapshot.ogUrl,
-              title: snapshot.title,
-              description: snapshot.description,
-              author: snapshot.title || snapshot.author,
-              media: snapshot.media,
-              resolvedVia: 'browser_ua',
-              snapshot
-            };
-          }
-        }
-
-        if (isFacebookShareUrl(input) && snapshot.status >= 400 && !hasPfbid) {
-          continue;
-        }
+        // Owner + id is as good as it gets; stop paying for more round trips.
+        if (bestScore === 3) break;
       } catch (error) {
         logger.info(`[FacebookCanonical] Snapshot failed for ${candidate}: ${error.message}`);
       }
     }
+    if (bestScore === 3) break;
   }
 
-  return result;
+  if (!best || bestScore === 0) {
+    logger.warn(
+      `[FacebookCanonical] Unresolved ${input} - no candidate produced an addressable post URL`
+    );
+    return result;
+  }
+
+  const resolvedVia = best.userAgent === FACEBOOK_CRAWLER_UA || best.userAgent === FACEBOOK_FACEBOT_UA
+    ? 'crawler_ua'
+    : 'browser_ua';
+
+  const resolved = {
+    ...result,
+    canonicalUrl: best.canonicalUrl,
+    pfbid: best.pfbid,
+    numericId: best.numericId,
+    ownerSlug: best.ownerSlug,
+    ogUrl: best.ogUrl,
+    title: best.title,
+    description: best.description,
+    // Deliberately NOT snapshot.title - see fetchFacebookPageSnapshot.
+    author: best.authorName || best.ownerSlug || '',
+    media: best.media,
+    resolvedVia,
+    snapshot: best
+  };
+
+  logger.info(
+    `[FacebookCanonical] Resolved ${input} -> ${resolved.canonicalUrl} `
+    + `(owner=${resolved.ownerSlug || 'n/a'}, pfbid=${resolved.pfbid || 'n/a'}, `
+    + `numeric=${resolved.numericId || 'n/a'}, score=${bestScore}, via=${resolvedVia})`
+  );
+
+  return resolved;
 };
 
 module.exports = {
@@ -258,5 +448,13 @@ module.exports = {
   fetchFacebookPageSnapshot,
   resolveFacebookCanonicalPost,
   extractPfbidFromText,
-  buildCanonicalPfbidUrl
+  buildCanonicalPfbidUrl,
+  extractNumericPostIdFromUrl,
+  extractOwnerSegment,
+  extractOwnerHandle,
+  extractOwnedPfbidUrlFromHtml,
+  chooseCanonicalUrl,
+  stripFacebookUrl,
+  compactPermalinkPath,
+  scoreSnapshot
 };

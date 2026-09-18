@@ -1,5 +1,6 @@
 const {
   fetchVerifiedFacebookPostFromApi,
+  fetchPageDetails,
   postMatchesTarget,
   extractFacebookPostToken,
   normalizeFacebookUrlForMatch
@@ -9,7 +10,9 @@ const {
   fetchFacebookPageSnapshot,
   FACEBOOK_CRAWLER_UA,
   isFacebookShareUrl,
-  extractPfbidFromText
+  extractPfbidFromText,
+  extractNumericPostIdFromUrl,
+  extractOwnerHandle
 } = require('./facebookCanonicalResolver');
 const logger = require('../utils/logger');
 
@@ -19,7 +22,10 @@ const mapPostToMetadata = (post, contentId, originalUrl, canonicalUrl) => ({
   text: post.text || '',
   description: post.text || '',
   author: post.author || 'Facebook User',
-  author_handle: post.author_handle || post.author || 'facebook',
+  // Never default to the literal 'facebook' - that is what rendered every
+  // unresolved Facebook investigation as "@facebook" on the alert card.
+  author_handle: post.author_handle || post.author || '',
+  author_avatar: post.author_avatar || '',
   created_at: post.created_at || new Date(),
   platform: 'facebook',
   content_type: 'post',
@@ -58,19 +64,31 @@ const postMatchesInvestigation = (post, originalUrl, canonicalUrl, contentId) =>
   return targets.some((target) => postMatchesTarget(post, target, contentId));
 };
 
-const buildPostFromCanonicalSnapshot = (snapshot, canonicalUrl, pfbid) => {
-  if (!snapshot || !pfbid || !canonicalUrl) return null;
+const buildPostFromCanonicalSnapshot = (snapshot, canonicalUrl, postId) => {
+  if (!snapshot || !canonicalUrl) return null;
+
+  // Reels and videos carry a numeric post id and no pfbid at all. Requiring a
+  // pfbid here is what made every reel investigation fall through to the
+  // "identity could not be verified" path.
+  const resolvedId = postId
+    || extractPfbidFromText(canonicalUrl)
+    || extractNumericPostIdFromUrl(canonicalUrl);
+  if (!resolvedId) return null;
 
   const text = snapshot.description || snapshot.title || '';
   const media = Array.isArray(snapshot.media) ? snapshot.media.filter((m) => m?.url) : [];
   if (!text.trim() && media.length === 0) return null;
 
+  const ownerSlug = snapshot.ownerSlug || extractOwnerHandle(canonicalUrl) || '';
+
   return {
-    id: pfbid,
+    id: resolvedId,
     url: canonicalUrl,
     text,
-    author: snapshot.author || snapshot.title || 'Facebook User',
-    author_handle: snapshot.author || 'facebook',
+    // Deliberately never snapshot.title: on a reel og:title is
+    // "2.1K views - 58 reactions | <post text>" - the post, not the poster.
+    author: snapshot.authorName || snapshot.author || ownerSlug || 'Facebook User',
+    author_handle: ownerSlug || '',
     media,
     metrics: {},
     verification_source: 'facebook_crawler_og',
@@ -81,8 +99,42 @@ const buildPostFromCanonicalSnapshot = (snapshot, canonicalUrl, pfbid) => {
 const identityIsCanonical = (canonicalUrl, pfbid, numericId = '') => {
   if (!canonicalUrl || isFacebookShareUrl(canonicalUrl)) return false;
   if (pfbid && extractPfbidFromText(canonicalUrl) === pfbid) return true;
-  if (numericId && String(canonicalUrl).includes(`/${numericId}`)) return true;
-  return Boolean(extractPfbidFromText(canonicalUrl));
+
+  const urlNumericId = extractNumericPostIdFromUrl(canonicalUrl);
+  if (numericId && (urlNumericId === numericId || String(canonicalUrl).includes(`/${numericId}`))) {
+    return true;
+  }
+
+  // A permalink that carries its own post id is addressable on its own —
+  // pfbid for feed posts, a numeric id for reels / videos / photos.
+  return Boolean(extractPfbidFromText(canonicalUrl) || urlNumericId);
+};
+
+/**
+ * Recover the poster's display name and avatar from the owning page.
+ * Best-effort: the investigation still succeeds when this lookup fails.
+ */
+const enrichAuthorFromOwnerPage = async (metadata, ownerSlug, pageDetailsFetcher) => {
+  if (!ownerSlug || typeof pageDetailsFetcher !== 'function') return;
+
+  // Only spend a RapidAPI call when we genuinely have no poster name — i.e. the
+  // crawler-OG path, where the best we have is the raw page slug. When the
+  // RapidAPI /post lookup already named the author, leave it alone.
+  const unresolvedAuthor = !metadata.author
+    || metadata.author === 'Facebook User'
+    || metadata.author === ownerSlug;
+  if (!unresolvedAuthor) return;
+
+  try {
+    const page = await pageDetailsFetcher(`https://www.facebook.com/${ownerSlug}`);
+    if (page?.name && unresolvedAuthor) metadata.author = page.name;
+    if (page?.image && !metadata.author_avatar) metadata.author_avatar = page.image;
+    if (!metadata.author_handle) metadata.author_handle = ownerSlug;
+  } catch (error) {
+    logger.info(
+      `[FacebookInvestigation] Page details lookup failed for ${ownerSlug}: ${error.message}`
+    );
+  }
 };
 
 /**
@@ -96,7 +148,8 @@ const resolveFacebookInvestigation = async ({
   canonicalResolution = null,
   fetchPageMetadata = null,
   fetchPostFromApi = fetchVerifiedFacebookPostFromApi,
-  resolveCanonical = resolveFacebookCanonicalPost
+  resolveCanonical = resolveFacebookCanonicalPost,
+  fetchOwnerPageDetails = fetchPageDetails
 }) => {
   let resolved = canonicalResolution;
   if (!resolved) {
@@ -105,8 +158,11 @@ const resolveFacebookInvestigation = async ({
 
   const resolvedCanonical = resolved?.canonicalUrl || canonicalUrl || originalUrl;
   const resolvedPfbid = resolved?.pfbid || extractPfbidFromText(resolvedCanonical);
-  const resolvedNumericId = resolved?.numericId || '';
-  const resolvedContentId = resolvedPfbid || contentId || resolvedNumericId;
+  const resolvedNumericId = resolved?.numericId || extractNumericPostIdFromUrl(resolvedCanonical);
+  const resolvedOwnerSlug = resolved?.ownerSlug || extractOwnerHandle(resolvedCanonical);
+  // A /share/<token> id is not a stable post identifier, so a real pfbid or
+  // numeric id must outrank the caller-supplied contentId.
+  const resolvedContentId = resolvedPfbid || resolvedNumericId || contentId;
 
   const result = {
     status: 'unresolved',
@@ -159,7 +215,11 @@ const resolveFacebookInvestigation = async ({
   if (!matchedPost) {
     const snapshot = resolved?.snapshot
       || await fetchFacebookPageSnapshot(resolvedCanonical, FACEBOOK_CRAWLER_UA);
-    matchedPost = buildPostFromCanonicalSnapshot(snapshot, resolvedCanonical, resolvedPfbid);
+    matchedPost = buildPostFromCanonicalSnapshot(
+      snapshot,
+      resolvedCanonical,
+      resolvedPfbid || resolvedNumericId
+    );
 
     if (matchedPost && !postMatchesInvestigation(matchedPost, originalUrl, resolvedCanonical, resolvedContentId)) {
       logger.warn('[FacebookInvestigation] Rejected crawler snapshot post identity mismatch');
@@ -234,10 +294,17 @@ const resolveFacebookInvestigation = async ({
     return result;
   }
 
+  // The poster's real name / avatar live on the owning page, not in the post's
+  // OG tags. Without this the card falls back to the raw slug.
+  const ownerSlug = resolvedOwnerSlug || extractOwnerHandle(verifiedCanonical);
+  if (!metadata.author_handle && ownerSlug) metadata.author_handle = ownerSlug;
+  await enrichAuthorFromOwnerPage(metadata, ownerSlug, fetchOwnerPageDetails);
+
   result.status = 'verified';
   result.canonical_url = verifiedCanonical;
   result.content_id = verifiedContentId;
   result.metadata = metadata;
+  result.owner_slug = ownerSlug || null;
   result.message = `Facebook post verified via ${metadata.verification_source}`;
   return result;
 };
@@ -248,5 +315,6 @@ module.exports = {
   pageUrlMatchesTarget,
   postMatchesInvestigation,
   buildPostFromCanonicalSnapshot,
-  identityIsCanonical
+  identityIsCanonical,
+  enrichAuthorFromOwnerPage
 };
