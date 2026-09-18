@@ -16,6 +16,7 @@
  */
 
 const axios = require('axios');
+const blugateHealthState = require('./blugateHealthState');
 
 const normalizeBaseUrl = (raw) => {
   const value = String(raw || '').trim().replace(/\/$/, '');
@@ -168,9 +169,14 @@ const blugateRequest = async ({
       ],
       validateStatus: (s) => s >= 200 && s < 300,
     });
+    blugateHealthState.markHealthy();
     return response.data;
   } catch (err) {
-    throw formatAxiosError(err, label, endpointKey || verb);
+    const enriched = formatAxiosError(err, label, endpointKey || verb);
+    if (enriched.status === 401) {
+      blugateHealthState.markUnauthorized(enriched);
+    }
+    throw enriched;
   }
 };
 

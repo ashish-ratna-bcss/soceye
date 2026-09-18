@@ -17,6 +17,7 @@ const axios = require('axios');
 const env = require('./blugate.x.env');
 const { X_ENDPOINTS } = require('./blugate.x.endpoints');
 const { authFromEnv } = require('../blugate.http');
+const blugateHealthState = require('../blugateHealthState');
 
 /** Build auth from env (single-tenant — see ../blugate.http.js authFromEnv). */
 const authFromPlatformRow = () => authFromEnv('X');
@@ -108,9 +109,14 @@ const callXApi = async (endpointKey, params = {}, auth = null) => {
       ],
       validateStatus: (s) => s >= 200 && s < 300,
     });
+    blugateHealthState.markHealthy();
     return response.data;
   } catch (err) {
-    throw formatAxiosError(err, endpointKey);
+    const enriched = formatAxiosError(err, endpointKey);
+    if (enriched.status === 401) {
+      blugateHealthState.markUnauthorized(enriched);
+    }
+    throw enriched;
   }
 };
 

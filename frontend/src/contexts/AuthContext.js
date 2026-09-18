@@ -12,6 +12,23 @@ export const useAuth = () => {
   return context;
 };
 
+/** One-shot check on login / app load (refresh) — mirrors backend blugateHealthState. */
+const notifyIfBlugateUnauthorized = async () => {
+  try {
+    const response = await api.get('/health/status');
+    const blugate = response.data?.data?.blugate;
+    if (blugate?.status === 'unauthorized') {
+      toast.error(
+        blugate.message ||
+          'Your API limit has been exceeded. Please renew your API limits to continue receiving live content.',
+        { duration: 10000 }
+      );
+    }
+  } catch (e) {
+    // Health check is best-effort — never block login/app load on it.
+  }
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
@@ -23,6 +40,7 @@ export const AuthProvider = ({ children }) => {
         try {
           const response = await api.get('/auth/me');
           setUser(response.data);
+          notifyIfBlugateUnauthorized();
         } catch (error) {
           console.error('Failed to fetch user:', error);
           logout();
@@ -44,6 +62,7 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
 
       toast.success('Logged in successfully');
+      notifyIfBlugateUnauthorized();
       return userData;
     } catch (error) {
       const message = error.response?.data?.message || 'Login failed';

@@ -15,6 +15,7 @@ const { checkAndCreateVelocityAlerts, createNewPostAlert, updateEngagementHistor
 const { queueUrlEnrichment } = require('./urlEnrichmentService');
 const rapidApiInstagramService = require('./rapidApiInstagramService');
 const { isBlugateConfigured } = require('./blugate/blugate.http');
+const blugateHealthState = require('./blugate/blugateHealthState');
 const callYouTubeApi = require('./blugate/youtube/blugate.youtube.api_client');
 const { archiveContentMedia, archiveTwitterMedia, archiveFacebookMedia } = require('./contentS3Service');
 const { enqueueMediaLocationExtraction } = require('./mediaLocationService');
@@ -3254,6 +3255,23 @@ const startMonitoring = async () => {
       const monitoringEnabled = settings.api_config?.monitoring?.enabled !== false;
       if (!monitoringEnabled) {
         nextCheckSeconds = 300; // check again in 5 min in case user re-enables
+        return;
+      }
+
+      // ─── BluGate account-wide access gate ──────────────────────────
+      // A 401 from BluGate means the client account itself lost access
+      // (quota exhausted / suspended) — this applies to every platform,
+      // not just the one that happened to see it. Pause all platform
+      // loops immediately, but recheck often: the next real scan attempt
+      // IS the recovery probe — the first one that comes back 200 flips
+      // blugateHealthState back to healthy and monitoring resumes.
+      if (isBlugateConfigured() && blugateHealthState.isUnauthorized()) {
+        nextCheckSeconds = 60;
+        logger.warn(
+          `[Monitor:${platform}] ⛔ BluGate access unauthorized (401 since ` +
+          `${blugateHealthState.getState().since?.toISOString()}) — skipping cycle; ` +
+          `retrying in ${nextCheckSeconds}s until access is restored.`
+        );
         return;
       }
 

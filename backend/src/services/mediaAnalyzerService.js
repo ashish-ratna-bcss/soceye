@@ -277,9 +277,9 @@ async function downloadTweetMedia(tweetId, originalUrl) {
     let tweetPayload;
 
     // Route through Blugate when configured — same provider (twitter241),
-    // via the tweet-v2 endpoint (this service's old '/tweet' + id param is
-    // not in Blugate's catalog; tweet-v2 + pid IS, and is what
-    // rapidApiXService.fetchTweetDetail already uses as its first attempt).
+    // via the tweet-v2 endpoint (pid), which is what
+    // rapidApiXService.fetchTweetDetail also uses as its first attempt.
+    // The direct branch below only runs when Blugate is not configured.
     if (isBlugateConfigured()) {
       tweetPayload = await callXApi('TWEET_DETAILS', { pid: tweetId });
     } else {

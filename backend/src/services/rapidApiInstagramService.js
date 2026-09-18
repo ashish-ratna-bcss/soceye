@@ -27,7 +27,17 @@ const INSTAGRAM_PATH_TO_BLUGATE_KEY = {
     '/highlightStories': 'HIGHLIGHT_STORIES',
     '/comments': 'COMMENTS',
     '/followers': 'FOLLOWERS',
-    '/followings': 'FOLLOWINGS'
+    '/followings': 'FOLLOWINGS',
+    // Legacy/alternate route spellings tried as fallbacks — mapped so they go
+    // through Blugate too, instead of falling through to direct RapidAPI.
+    '/user/posts': 'USER_POSTS_LEGACY',
+    '/media': 'MEDIA_LEGACY',
+    '/user/info': 'USER_INFO_LEGACY',
+    '/userInfoById': 'USER_INFO_BY_ID',
+    '/user/info/by/id': 'USER_INFO_BY_ID_LEGACY',
+    '/postInfo': 'POST_INFO',
+    '/post/info': 'POST_INFO_LEGACY',
+    '/media/info': 'MEDIA_INFO_LEGACY'
 };
 
 const blugateKeyForInstagramPath = (path) => {
@@ -424,6 +434,10 @@ const fetchUserProfileById = async (userId) => {
     const cleanUserId = String(userId || '').trim();
     if (!cleanUserId) return null;
 
+    // Every attempt below is Blugate-routed: blugateKeyForInstagramPath()
+    // strips the '/api/instagram' prefix, and both the primary shapes
+    // ('/userInfo', '/profile') and the legacy ones ('/user/info',
+    // '/userInfoById', '/user/info/by/id') are in INSTAGRAM_PATH_TO_BLUGATE_KEY.
     const endpoints = [
         { method: 'POST', path: '/api/instagram/userInfo', data: { userId: cleanUserId } },
         { method: 'POST', path: '/api/instagram/userInfo', data: { username: cleanUserId } },

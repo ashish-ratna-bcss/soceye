@@ -33,11 +33,12 @@ const getRapidApiHeaders = () => {
 };
 
 // Maps this service's literal RapidAPI paths to Blugate X endpoint catalog
-// keys (services/blugate/x/blugate.x.endpoints.js). '/tweet' and
-// '/tweet-details' have no Blugate equivalent (see the catalog) and stay on
-// direct RapidAPI — '/tweet-v2', '/search', and '/user' are covered.
+// keys (services/blugate/x/blugate.x.endpoints.js). Every path this file
+// calls is covered, so nothing here reaches RapidAPI directly.
 const X_GRIEVANCE_PATH_TO_BLUGATE_KEY = {
     '/tweet-v2': 'TWEET_DETAILS',
+    '/tweet': 'TWEET',
+    '/tweet-details': 'TWEET_DETAILS_LEGACY',
     '/search': 'SEARCH',
     '/user': 'USER'
 };

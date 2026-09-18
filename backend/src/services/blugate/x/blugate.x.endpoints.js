@@ -97,6 +97,51 @@ const X_ENDPOINTS = {
             }
         }
     },
+    USER_BY_ID: {
+        method: 'GET',
+        path: 'user-by-id',
+        usedFor: 'Look up a user by numeric id — fallback shape when get-users cannot resolve the account',
+        params: [
+            { name: 'user_id', in: 'query', required: true, type: 'string', description: 'Numeric rest_id (also accepts userId / id)' }
+        ]
+    },
+    USER_V2: {
+        method: 'GET',
+        path: 'user-v2',
+        usedFor: 'Alternate user-lookup shape — fallback when get-users and user-by-id cannot resolve the account',
+        params: [
+            { name: 'user_id', in: 'query', required: true, type: 'string', description: 'Numeric rest_id (also accepts userId / id)' }
+        ]
+    },
+    USER_TWEETS_V2: {
+        method: 'GET',
+        path: 'user-tweets-v2',
+        usedFor: "Alternate timeline shape — fallback when user-tweets cannot paginate an account's posts",
+        params: [
+            { name: 'user', in: 'query', required: true, type: 'string', description: 'Numeric rest_id' },
+            { name: 'count', in: 'query', required: false, type: 'string', description: 'Requested number of tweets' },
+            { name: 'cursor', in: 'query', required: false, type: 'string', description: 'Pagination cursor' }
+        ]
+    },
+    TWEET_DETAILS_LEGACY: {
+        method: 'GET',
+        path: 'tweet-details',
+        usedFor: 'Legacy single-tweet lookup shape — fallback when tweet-v2 and tweet cannot resolve the id',
+        params: [
+            { name: 'tweet_id', in: 'query', required: true, type: 'string', description: 'Numeric tweet id (also accepts id)' }
+        ]
+    },
+    TWEET: {
+        method: 'GET',
+        path: 'tweet',
+        usedFor: 'Fetch one tweet with its threaded conversation — fallback shape when tweet-v2 cannot resolve the id',
+        params: [
+            { name: 'pid', in: 'query', required: true, type: 'string', description: 'Numeric tweet id' }
+        ],
+        example: {
+            data: { threaded_conversation_with_injections_v2: { instructions: ['(tweet + reply entries)'] } }
+        }
+    },
     RETWEETS: {
         method: 'GET',
         path: 'retweets',

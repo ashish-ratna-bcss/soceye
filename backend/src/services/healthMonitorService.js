@@ -21,14 +21,16 @@ const checkSystemHealth = async () => {
     const dbState = mongoose.connection.readyState;
     const dbStatus = dbState === 1 ? 'online' : 'offline';
 
-    // Check Microservices
-    const ollama = await pingService(process.env.OLLAMA_BASE_URL, '/api/tags');
-    const sentiment = await pingService(
-      process.env.INTELLIGENCE_SERVICE_URL || process.env.CUSTOM_SENTIMENT_URL,
-      '/health'
-    );
-    const mediaAnalyzer = await pingService(process.env.MEDIA_ANALYZER_URL, '/health');
-    const ragApi = await pingService(process.env.RAG_API_URL, '/api/rag/health');
+    // Check Microservices (in parallel — each has its own timeout, no need to serialize)
+    const [ollama, sentiment, mediaAnalyzer, ragApi] = await Promise.all([
+      pingService(process.env.OLLAMA_BASE_URL, '/api/tags'),
+      pingService(
+        process.env.INTELLIGENCE_SERVICE_URL || process.env.CUSTOM_SENTIMENT_URL,
+        '/health'
+      ),
+      pingService(process.env.MEDIA_ANALYZER_URL, '/health'),
+      pingService(process.env.RAG_API_URL, '/api/rag/health'),
+    ]);
 
     // Attempt to pull RapidAPI stats from existing services if they expose it
     let instagramLimit = { totalCalls: 0, remaining: 'Unknown', limit: 'Unknown' };
@@ -119,6 +121,12 @@ const checkSystemHealth = async () => {
       analysisPipeline = { status: 'offline', error: e.message };
     }
 
+    let blugate = { status: 'unknown', message: null, since: null };
+    try {
+        const { getState } = require('./blugate/blugateHealthState');
+        blugate = getState();
+    } catch (e) {}
+
     return {
         timestamp: new Date().toISOString(),
         database: { status: dbStatus },
@@ -129,6 +137,7 @@ const checkSystemHealth = async () => {
             mediaAnalyzer,
             ragApi
         },
+        blugate,
         quotas: {
             totalOverallCalls: (instagramLimit.totalCalls || 0) + (facebookLimit.totalCalls || 0) + (xLimit.totalCalls || 0) + (youtubeLimit.totalCalls || 0),
             instagram: instagramLimit,
