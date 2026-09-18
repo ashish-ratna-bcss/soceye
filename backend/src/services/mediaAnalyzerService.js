@@ -3,6 +3,8 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const { MEDIA_ANALYZER_URL } = require('../config/mediaAnalyzer');
 const logger = require('../utils/logger');
+const { isBlugateConfigured } = require('./blugate/blugate.http');
+const callXApi = require('./blugate/x/blugate.x.api_client');
 const DOWNLOADS_DIR = process.env.MEDIA_DOWNLOADS_DIR || path.join(__dirname, '../../downloads');
 const DIRECT_MEDIA_EXT_RE = /\.(mp4|webm|mkv|mov|avi|m3u8|jpg|jpeg|png|gif|webp)(\?|$)/i;
 
@@ -272,24 +274,42 @@ function extractTweetId(url) {
 // Remove all local saving for X/Twitter videos
 async function downloadTweetMedia(tweetId, originalUrl) {
   try {
-    const apiKey = process.env.RAPIDAPI_KEY;
-    const apiHost = process.env.RAPIDAPI_HOST;
+    let tweetPayload;
 
-    if (!apiKey || !apiHost) {
-      throw new Error('RapidAPI credentials not configured');
+    // Route through Blugate when configured — same provider (twitter241),
+    // via the tweet-v2 endpoint (this service's old '/tweet' + id param is
+    // not in Blugate's catalog; tweet-v2 + pid IS, and is what
+    // rapidApiXService.fetchTweetDetail already uses as its first attempt).
+    if (isBlugateConfigured()) {
+      tweetPayload = await callXApi('TWEET_DETAILS', { pid: tweetId });
+    } else {
+      const apiKey = process.env.RAPIDAPI_KEY;
+      const apiHost = process.env.RAPIDAPI_HOST;
+
+      if (!apiKey || !apiHost) {
+        throw new Error('RapidAPI credentials not configured');
+      }
+
+      // Fetch tweet details
+      const response = await axios.get(`https://${apiHost}/tweet`, {
+        params: { id: tweetId },
+        headers: {
+          'x-rapidapi-key': apiKey,
+          'x-rapidapi-host': apiHost
+        },
+        timeout: 30000
+      });
+      tweetPayload = response.data;
     }
 
-    // Fetch tweet details
-    const response = await axios.get(`https://${apiHost}/tweet`, {
-      params: { id: tweetId },
-      headers: {
-        'x-rapidapi-key': apiKey,
-        'x-rapidapi-host': apiHost
-      },
-      timeout: 30000
-    });
-
-    const tweetData = response.data?.result?.legacy || response.data?.tweet?.legacy || response.data;
+    // Unwrap both shapes: legacy direct-provider '/tweet' response
+    // (`{ result: { legacy } }` / `{ tweet: { legacy } }`) and Blugate's
+    // tweet-v2 GraphQL shape (`{ result: { tweetResult: { result: { legacy } } } }`).
+    const tweetData =
+      tweetPayload?.result?.tweetResult?.result?.legacy ||
+      tweetPayload?.result?.legacy ||
+      tweetPayload?.tweet?.legacy ||
+      tweetPayload;
     const mediaItems = extractMediaFromTweet(tweetData);
 
     if (mediaItems.length === 0) {

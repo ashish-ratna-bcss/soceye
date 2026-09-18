@@ -1,8 +1,23 @@
 const axios = require('axios');
 const Counter = require('../models/Counter');
 const logger = require('../utils/logger');
+const { isBlugateConfigured } = require('./blugate/blugate.http');
+const callFacebookApi = require('./blugate/facebook/blugate.facebook.api_client');
 
 const FACEBOOK_DEFAULT_HOST = 'facebook-scraper3.p.rapidapi.com';
+
+// Maps this service's literal RapidAPI paths to the Blugate Facebook endpoint
+// catalog keys (services/blugate/facebook/blugate.facebook.endpoints.js).
+// Blugate is a transparent pass-through to the same provider (facebook-scraper3)
+// — paths are identical, only the base URL + auth headers change.
+const FACEBOOK_PATH_TO_BLUGATE_KEY = {
+    '/page/details': 'PAGE_DETAILS',
+    '/page/posts': 'PAGE_POSTS',
+    '/post/comments': 'POST_COMMENTS',
+    '/post': 'POST',
+    '/search/pages': 'SEARCH_PAGES',
+    '/search/posts': 'SEARCH_POSTS'
+};
 
 let totalCalls = 0;
 // Initialize from DB
@@ -200,6 +215,26 @@ const markKeyRateLimited = (key, retryAfterSeconds) => {
 };
 
 const rapidGet = async (path, params, options = {}, _attempt = 0) => {
+    // Route through Blugate when fully configured — same provider, same paths,
+    // only the base URL + auth headers differ (see FACEBOOK_PATH_TO_BLUGATE_KEY
+    // above). No Blugate config → falls straight through to direct RapidAPI
+    // below, unchanged. A Blugate-side error is NOT silently retried against
+    // direct RapidAPI — that would mask real Blugate problems during testing.
+    const blugateEndpointKey = FACEBOOK_PATH_TO_BLUGATE_KEY[path];
+    if (blugateEndpointKey && isBlugateConfigured()) {
+        try {
+            const data = await callFacebookApi(blugateEndpointKey, params);
+            _incrementCalls();
+            return { data, status: 200, headers: {} };
+        } catch (error) {
+            _incrementCalls();
+            // error.response is preserved by blugate.http's formatAxiosError,
+            // so every existing `error?.response?.status === 429` /
+            // `error.response?.status === 404` check downstream keeps working.
+            throw error;
+        }
+    }
+
     const key = await pickUsableKey(options);
     const host = getFacebookRapidApiHost();
     try {

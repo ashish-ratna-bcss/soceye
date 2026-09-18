@@ -1,8 +1,39 @@
 const axios = require('axios');
 const Counter = require('../models/Counter');
 const logger = require('../utils/logger');
+const { isBlugateConfigured } = require('./blugate/blugate.http');
+const callInstagramApi = require('./blugate/instagram/blugate.instagram.api_client');
 
 const INSTAGRAM_DEFAULT_HOST = 'instagram120.p.rapidapi.com';
+
+// Maps this service's literal RapidAPI paths to the Blugate Instagram endpoint
+// catalog keys (services/blugate/instagram/blugate.instagram.endpoints.js).
+// Blugate is a transparent pass-through to the same provider (ig-downloader-api)
+// — paths are identical, only the base URL + auth headers change. This
+// service also tries `/api/instagram/<name>` variants as a legacy fallback
+// shape; strip that prefix before matching so both forms route through
+// Blugate the same way.
+const INSTAGRAM_PATH_TO_BLUGATE_KEY = {
+    '/links': 'LINKS',
+    '/mediaByShortcode': 'MEDIA_BY_SHORTCODE',
+    '/profile': 'PROFILE',
+    '/userInfo': 'USER_INFO',
+    '/posts': 'POSTS',
+    '/reels': 'REELS',
+    '/taggedPosts': 'TAGGED_POSTS',
+    '/stories': 'STORIES',
+    '/story': 'STORY',
+    '/highlights': 'HIGHLIGHTS',
+    '/highlightStories': 'HIGHLIGHT_STORIES',
+    '/comments': 'COMMENTS',
+    '/followers': 'FOLLOWERS',
+    '/followings': 'FOLLOWINGS'
+};
+
+const blugateKeyForInstagramPath = (path) => {
+    const stripped = String(path || '').replace(/^\/api\/instagram/i, '');
+    return INSTAGRAM_PATH_TO_BLUGATE_KEY[stripped] || null;
+};
 
 // ─── Subscribed Key — Direct Usage (no cooldown/rotation) ──────────────────
 let totalCalls = 0;
@@ -32,6 +63,15 @@ const getInstagramRapidApiKeys = () => {
     const key = String(process.env.RAPIDAPI_INSTAGRAM_KEY || process.env.RAPIDAPI_INSTAGRAM_KEYS).split(',')[0].trim();
     return key ? [key] : [];
 };
+
+// True when this platform is reachable EITHER via a direct RapidAPI key OR
+// via Blugate. Callers that pre-flight-check "is Instagram configured"
+// before ever calling rapidPost/rapidGet must use this — not
+// getInstagramRapidApiKeys().length directly — or they block every request
+// before the Blugate routing inside rapidPost/rapidGet ever gets a chance
+// to run (this is exactly what monitorInstagramSource and the manual
+// scan/scan-all endpoints were doing).
+const isInstagramApiAvailable = () => getInstagramRapidApiKeys().length > 0 || isBlugateConfigured();
 
 const getInstagramRapidApiHost = () => {
     return process.env.RAPIDAPI_INSTAGRAM_HOST || INSTAGRAM_DEFAULT_HOST;
@@ -98,6 +138,24 @@ const getKeyHealthStatus = () => {
 
 // ─── Core POST Request (subscribed key — simple retry on errors) ────────────
 const rapidPost = async (path, data, _retryCount = 0) => {
+    // Route through Blugate when fully configured — same provider
+    // (ig-downloader-api), same paths, only the base URL + auth headers
+    // differ. Checked BEFORE the RapidAPI-key guard below so Blugate works
+    // even with no RAPIDAPI_INSTAGRAM_KEY configured at all. A Blugate-side
+    // error is NOT silently retried against direct RapidAPI — that would
+    // mask real Blugate problems during testing.
+    const blugateEndpointKey = blugateKeyForInstagramPath(path);
+    if (blugateEndpointKey && isBlugateConfigured()) {
+        try {
+            const responseData = await callInstagramApi(blugateEndpointKey, data);
+            _incrementCalls();
+            return { data: responseData, status: 200, headers: {} };
+        } catch (error) {
+            _incrementCalls();
+            throw error;
+        }
+    }
+
     const keys = getInstagramRapidApiKeys();
     if (keys.length === 0) throw new Error('No RapidAPI Instagram keys configured');
 
@@ -176,6 +234,25 @@ const rapidPost = async (path, data, _retryCount = 0) => {
 
 // ─── Core GET Request (subscribed key — simple retry on errors) ─────────────
 const rapidGet = async (path, params = {}, _retryCount = 0) => {
+    // Route through Blugate when fully configured. Note the underlying
+    // ig-downloader-api gateway is POST-only for every endpoint in the
+    // catalog (see blugate.instagram.endpoints.js) — this service's GET
+    // attempts exist only as a fallback shape against RapidAPI directly, so
+    // routing them through callInstagramApi (which always POSTs per the
+    // catalog) is correct, not a mismatch. Checked BEFORE the RapidAPI-key
+    // guard below so Blugate works even with no key configured at all.
+    const blugateEndpointKey = blugateKeyForInstagramPath(path);
+    if (blugateEndpointKey && isBlugateConfigured()) {
+        try {
+            const responseData = await callInstagramApi(blugateEndpointKey, params);
+            _incrementCalls();
+            return { data: responseData, status: 200, headers: {} };
+        } catch (error) {
+            _incrementCalls();
+            throw error;
+        }
+    }
+
     const keys = getInstagramRapidApiKeys();
     if (keys.length === 0) throw new Error('No RapidAPI Instagram keys configured');
 
@@ -678,5 +755,6 @@ module.exports = {
     searchPosts,
     getKeyHealthStatus,
     getInstagramRapidApiKeys,
+    isInstagramApiAvailable,
     extractInstagramLocation
 };

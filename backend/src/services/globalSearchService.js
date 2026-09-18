@@ -55,7 +55,7 @@ class GlobalSearchService {
                 xError = e;
             }
         }
-        if ((!xResults || xResults.length === 0) && (!process.env.RAPIDAPI_KEY && !process.env.X_BEARER_TOKEN)) {
+        if ((!xResults || xResults.length === 0) && (!rapidApiXService.isXRapidApiAvailable() && !process.env.X_BEARER_TOKEN)) {
             try {
                 const { scrapeProfile, getHealthyAccount } = require('./scraperService');
                 const account = await getHealthyAccount();
@@ -114,7 +114,7 @@ class GlobalSearchService {
                 xError = e;
             }
         }
-        if ((!xResults || xResults.length === 0) && (!process.env.RAPIDAPI_KEY && !process.env.X_BEARER_TOKEN)) {
+        if ((!xResults || xResults.length === 0) && (!rapidApiXService.isXRapidApiAvailable() && !process.env.X_BEARER_TOKEN)) {
             try {
                 const { scrapeProfile, getHealthyAccount } = require('./scraperService');
                 const account = await getHealthyAccount();

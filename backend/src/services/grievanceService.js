@@ -9,6 +9,8 @@ const rapidApiFacebookService = require('./rapidApiFacebookService');
 const { archiveTwitterMedia } = require('./contentS3Service');
 const { generateComplaintCode } = require('./complaintCodeService');
 const { syncLegacyFieldsFromWorkflow } = require('./grievanceWorkflowService');
+const { isBlugateConfigured } = require('./blugate/blugate.http');
+const callXApi = require('./blugate/x/blugate.x.api_client');
 const logger = require('../utils/logger');
 
 /**
@@ -28,6 +30,36 @@ const getRapidApiHeaders = () => {
         'x-rapidapi-key': apiKey,
         'x-rapidapi-host': apiHost
     };
+};
+
+// Maps this service's literal RapidAPI paths to Blugate X endpoint catalog
+// keys (services/blugate/x/blugate.x.endpoints.js). '/tweet' and
+// '/tweet-details' have no Blugate equivalent (see the catalog) and stay on
+// direct RapidAPI — '/tweet-v2', '/search', and '/user' are covered.
+const X_GRIEVANCE_PATH_TO_BLUGATE_KEY = {
+    '/tweet-v2': 'TWEET_DETAILS',
+    '/search': 'SEARCH',
+    '/user': 'USER'
+};
+
+/**
+ * Drop-in replacement for a direct `axios.get(RAPIDAPI_HOST + path, { headers: getRapidApiHeaders() })`
+ * call — routes through Blugate when configured and the path is covered by
+ * its catalog, otherwise falls through to direct RapidAPI unchanged. Returns
+ * an axios-response-shaped object so every existing `res.data?.x` access
+ * pattern in this file keeps working without modification.
+ */
+const rapidRequestXForGrievance = async (path, params, timeoutMs) => {
+    const blugateEndpointKey = X_GRIEVANCE_PATH_TO_BLUGATE_KEY[path];
+    if (blugateEndpointKey && isBlugateConfigured()) {
+        const data = await callXApi(blugateEndpointKey, params);
+        return { data };
+    }
+    return axios.get(`https://${process.env.RAPIDAPI_HOST}${path}`, {
+        params,
+        headers: getRapidApiHeaders(),
+        timeout: timeoutMs || 15000
+    });
 };
 
 const extractMediaFromLegacy = (legacy) => {
@@ -137,6 +169,10 @@ const fetchTweetById = async (tweetId, cache = null, handle = null) => {
 
     // Attempt 1: provider-specific tweet endpoint (if available)
     const endpointAttempts = [
+        // tweet-v2 is the only one of these Blugate's catalog actually covers
+        // (TWEET_DETAILS, param `pid`) — tried first so it takes the Blugate
+        // path when configured. The rest stay direct-RapidAPI-only fallbacks.
+        { path: '/tweet-v2', params: { pid: key } },
         { path: '/tweet', params: { id: key } },
         { path: '/tweet', params: { tweet_id: key } },
         { path: '/tweet-details', params: { id: key } },
@@ -145,13 +181,10 @@ const fetchTweetById = async (tweetId, cache = null, handle = null) => {
 
     for (const attempt of endpointAttempts) {
         try {
-            const res = await axios.get(`https://${process.env.RAPIDAPI_HOST}${attempt.path}`, {
-                params: attempt.params,
-                headers: getRapidApiHeaders(),
-                timeout: 5000
-            });
+            const res = await rapidRequestXForGrievance(attempt.path, attempt.params, 5000);
 
-            const tweetResult = res.data?.result?.tweet ||
+            const tweetResult = res.data?.result?.tweetResult?.result ||
+                res.data?.result?.tweet ||
                 res.data?.result?.tweet_results?.result ||
                 res.data?.tweet_results?.result ||
                 res.data?.result;
@@ -173,11 +206,11 @@ const fetchTweetById = async (tweetId, cache = null, handle = null) => {
         for (const searchQuery of searchQueries) {
             if (snapshot) break;
             try {
-                const res = await axios.get(`https://${process.env.RAPIDAPI_HOST}/search`, {
-                    params: { query: searchQuery, type: 'Latest', count: 20 },
-                    headers: getRapidApiHeaders(),
-                    timeout: 15000
-                });
+                const res = await rapidRequestXForGrievance(
+                    '/search',
+                    { query: searchQuery, type: 'Latest', count: 20 },
+                    15000
+                );
 
                 const entries = getTimelineEntriesFromSearchResponse(res.data);
                 for (const entry of entries) {
@@ -313,10 +346,7 @@ const fetchUserProfile = async (handle) => {
     try {
         const cleanHandle = handle.replace('@', '').trim();
 
-        const userResponse = await axios.get(`https://${process.env.RAPIDAPI_HOST}/user`, {
-            params: { username: cleanHandle },
-            headers: getRapidApiHeaders()
-        });
+        const userResponse = await rapidRequestXForGrievance('/user', { username: cleanHandle });
 
         let result = null;
         if (userResponse.data?.result?.data?.user?.result) {
@@ -389,13 +419,10 @@ const searchMentions = async (handle, limit = 50, startDate = null, endDate = nu
         
 
 
-        const response = await axios.get(`https://${process.env.RAPIDAPI_HOST}/search`, {
-            params: {
-                query: searchQuery,
-                type: 'Latest',
-                count: adjustedLimit
-            },
-            headers: getRapidApiHeaders()
+        const response = await rapidRequestXForGrievance('/search', {
+            query: searchQuery,
+            type: 'Latest',
+            count: adjustedLimit
         });
 
         

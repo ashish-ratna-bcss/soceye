@@ -2,6 +2,33 @@ const { google } = require('googleapis');
 const moment = require('moment');
 const Counter = require('../models/Counter');
 const logger = require('../utils/logger');
+const { isBlugateConfigured } = require('./blugate/blugate.http');
+const callYouTubeApi = require('./blugate/youtube/blugate.youtube.api_client');
+
+// googleapis SDK params use arrays for repeatable fields (`part`, `id`).
+// Blugate proxies the raw YouTube Data API v3 REST endpoint, which expects
+// a flat comma-separated string for the same fields instead.
+const toRestParams = (sdkParams = {}) => {
+    const out = {};
+    for (const [key, value] of Object.entries(sdkParams)) {
+        if (value === undefined || value === null) continue;
+        out[key] = Array.isArray(value) ? value.join(',') : value;
+    }
+    return out;
+};
+
+// Reshape a Blugate/axios error to the shape the googleapis SDK throws
+// (`error.code`, `error.errors[0].reason`) — every quotaExceeded / 403 check
+// in this file already looks for that shape specifically.
+const normalizeYouTubeError = (error) => {
+    const googleError = error?.response?.data?.error;
+    if (!googleError) return error;
+    const normalized = new Error(googleError.message || error.message);
+    normalized.code = googleError.code || error.status;
+    normalized.status = googleError.code || error.status;
+    normalized.errors = googleError.errors || [];
+    return normalized;
+};
 
 class YouTubeService {
     constructor() {
@@ -26,6 +53,24 @@ class YouTubeService {
         Counter.findOneAndUpdate({ key: 'api_calls_youtube' }, { $inc: { seq: amount } }, { upsert: true }).catch(() => {});
     }
 
+    // Routes through Blugate when configured (same official YouTube Data API
+    // v3 REST endpoints, proxied — see services/blugate/youtube/), otherwise
+    // falls through to the googleapis SDK call unchanged. Returns a
+    // response-shaped `{ data }` object either way, matching what the SDK
+    // already returns, so every existing `response.data.x` access pattern
+    // in this file keeps working without modification.
+    async _callYouTube(endpointKey, sdkParams, sdkCall) {
+        if (isBlugateConfigured()) {
+            try {
+                const data = await callYouTubeApi(endpointKey, toRestParams(sdkParams));
+                return { data };
+            } catch (error) {
+                throw normalizeYouTubeError(error);
+            }
+        }
+        return sdkCall();
+    }
+
     getKeyHealthStatus() {
         return [{
             key: 'YouTube',
@@ -41,10 +86,15 @@ class YouTubeService {
     async getChannelDetails(channelId) {
         try {
             this._incrementQuota(1);
-            const response = await this.youtube.channels.list({
+            const channelsParams = {
                 part: ['snippet', 'statistics', 'brandingSettings', 'contentDetails'],
                 id: [channelId]
-            });
+            };
+            const response = await this._callYouTube(
+                'CHANNELS_LIST',
+                channelsParams,
+                () => this.youtube.channels.list(channelsParams)
+            );
 
             if (!response.data.items || response.data.items.length === 0) {
                 throw new Error('Channel not found');
@@ -81,22 +131,32 @@ class YouTubeService {
         try {
             this._incrementQuota(100);
             const safeLimit = Math.min(Math.max(Number(limit) || 10, 1), 50);
-            const response = await this.youtube.search.list({
+            const searchParams = {
                 part: ['snippet'],
                 q: query,
                 type: 'channel',
                 maxResults: safeLimit
-            });
+            };
+            const response = await this._callYouTube(
+                'SEARCH_LIST',
+                searchParams,
+                () => this.youtube.search.list(searchParams)
+            );
 
             const channelIds = response.data.items.map(item => item.snippet.channelId).filter(Boolean);
             if (channelIds.length === 0) return [];
 
             this._incrementQuota(1);
             // Fetch full channel details with statistics (subscriber counts)
-            const detailsResponse = await this.youtube.channels.list({
+            const channelsParams = {
                 part: ['snippet', 'statistics'],
                 id: channelIds
-            });
+            };
+            const detailsResponse = await this._callYouTube(
+                'CHANNELS_LIST',
+                channelsParams,
+                () => this.youtube.channels.list(channelsParams)
+            );
 
             return (detailsResponse.data.items || []).map(channel => {
                 const stats = channel.statistics || {};
@@ -136,14 +196,19 @@ class YouTubeService {
                 const pageSize = Math.min(remaining, 50);
 
                 this._incrementQuota(100);
-                const response = await this.youtube.search.list({
+                const videoSearchParams = {
                     part: ['snippet'],
                     q: query,
                     type: 'video',
                     maxResults: pageSize,
                     order: 'date',
                     pageToken: nextPageToken
-                });
+                };
+                const response = await this._callYouTube(
+                    'SEARCH_LIST',
+                    videoSearchParams,
+                    () => this.youtube.search.list(videoSearchParams)
+                );
 
                 const items = response?.data?.items || [];
                 for (const item of items) {
@@ -172,11 +237,16 @@ class YouTubeService {
     async getVideosFromPlaylist(playlistId, maxResults = 50) {
         try {
             this._incrementQuota(1);
-            const response = await this.youtube.playlistItems.list({
+            const playlistParams = {
                 part: ['snippet', 'contentDetails'],
                 playlistId: playlistId,
                 maxResults: maxResults
-            });
+            };
+            const response = await this._callYouTube(
+                'PLAYLIST_ITEMS_LIST',
+                playlistParams,
+                () => this.youtube.playlistItems.list(playlistParams)
+            );
 
             const videoIds = response.data.items.map(item => item.contentDetails.videoId);
             return await this.getVideoDetails(videoIds);
@@ -198,10 +268,15 @@ class YouTubeService {
         for (const chunk of chunks) {
             try {
                 this._incrementQuota(1);
-                const response = await this.youtube.videos.list({
+                const videosParams = {
                     part: ['snippet', 'contentDetails', 'statistics'],
                     id: chunk
-                });
+                };
+                const response = await this._callYouTube(
+                    'VIDEOS_LIST',
+                    videosParams,
+                    () => this.youtube.videos.list(videosParams)
+                );
                 allVideos = allVideos.concat(response.data.items);
             } catch (error) {
                 logger.error('Error fetching video details chunk:', error);
@@ -232,12 +307,17 @@ class YouTubeService {
     async getVideoComments(videoId, maxResults = 100) {
         try {
             this._incrementQuota(1);
-            const response = await this.youtube.commentThreads.list({
+            const commentsParams = {
                 part: ['snippet', 'replies'],
                 videoId: videoId,
                 maxResults: maxResults, // Note: max is 100 for this endpoint
                 textFormat: 'plainText'
-            });
+            };
+            const response = await this._callYouTube(
+                'COMMENT_THREADS_LIST',
+                commentsParams,
+                () => this.youtube.commentThreads.list(commentsParams)
+            );
 
             return response.data.items.map(item => {
                 const topLevel = item.snippet.topLevelComment.snippet;

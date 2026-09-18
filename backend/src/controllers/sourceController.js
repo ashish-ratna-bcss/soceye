@@ -1232,13 +1232,12 @@ const scanNow = async (req, res) => {
       return res.status(404).json({ message: 'Source not found' });
     }
 
-    // Guard: Instagram requires RapidAPI keys.
+    // Guard: Instagram requires RapidAPI keys or Blugate.
     if (source.platform === 'instagram') {
-      const { getInstagramRapidApiKeys } = require('../services/rapidApiInstagramService');
-      const keys = getInstagramRapidApiKeys();
-      if (!keys || keys.length === 0) {
+      const { isInstagramApiAvailable } = require('../services/rapidApiInstagramService');
+      if (!isInstagramApiAvailable()) {
         return res.status(400).json({
-          message: 'Instagram RapidAPI key is not configured. Please set RAPIDAPI_INSTAGRAM_KEY in .env or settings.'
+          message: 'Instagram RapidAPI key is not configured. Please set RAPIDAPI_INSTAGRAM_KEY, or BLUGATE_ACCESS_KEY/BLUGATE_CLIENT_ID, in .env or settings.'
         });
       }
     }
@@ -1281,11 +1280,10 @@ const scanAllSources = async (req, res) => {
     if (platform) query.platform = platform;
 
     if (platform === 'instagram') {
-      const { getInstagramRapidApiKeys } = require('../services/rapidApiInstagramService');
-      const keys = getInstagramRapidApiKeys();
-      if (!keys || keys.length === 0) {
+      const { isInstagramApiAvailable } = require('../services/rapidApiInstagramService');
+      if (!isInstagramApiAvailable()) {
         return res.status(400).json({
-          message: 'Instagram RapidAPI key is not configured. Please set RAPIDAPI_INSTAGRAM_KEY in .env or settings.'
+          message: 'Instagram RapidAPI key is not configured. Please set RAPIDAPI_INSTAGRAM_KEY, or BLUGATE_ACCESS_KEY/BLUGATE_CLIENT_ID, in .env or settings.'
         });
       }
     }
