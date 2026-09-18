@@ -424,7 +424,7 @@ const getAlerts = async (req, res) => {
     // Join content + source for only visible rows
     const contentIds = Array.from(new Set(alerts.map((a) => a.content_id || a.content_ref_id).filter(Boolean)));
     const contents = await Content.find({ id: { $in: contentIds } })
-      .select('id content_id platform content_type content_url text author author_handle author_avatar published_at engagement media is_deleted deleted_at is_expired expired_at availability_status is_repost original_author original_author_name original_author_avatar quoted_content url_cards thumbnails risk_factors risk_level source_id translated_text scraped_content location media_location')
+      .select('id content_id platform content_type content_url source_url text author author_handle author_avatar published_at engagement media is_deleted deleted_at is_expired expired_at availability_status is_repost original_author original_author_name original_author_avatar quoted_content url_cards thumbnails risk_factors risk_level source_id translated_text scraped_content location media_location')
       .lean();
 
     // For Facebook content with empty media, try to extract from raw_data
@@ -929,6 +929,7 @@ const getAlertById = async (req, res) => {
             platform: '$content_data.platform',
             content_type: '$content_data.content_type',
             content_url: '$content_data.content_url',
+            source_url: '$content_data.source_url',
             text: '$content_data.text',
             author: '$content_data.author',
             author_handle: '$content_data.author_handle',
@@ -1567,6 +1568,7 @@ const investigateLink = async (req, res) => {
           platform,
           content_id: contentId,
           content_url: resolvedUrl,
+          source_url: originalUrl,
           text: metadata.text || metadata.description || metadata.title,
           author: metadata.author || metadata.channelTitle || 'Unknown',
           author_handle: metadata.author_handle || metadata.channelId || 'unknown',
@@ -1600,6 +1602,7 @@ const investigateLink = async (req, res) => {
           {
             $set: {
               content_url: resolvedUrl || contentRecord.content_url,
+              source_url: originalUrl || contentRecord.source_url || '',
               text: nextText,
               author: metadata.author || metadata.channelTitle || contentRecord.author,
               author_handle: metadata.author_handle || metadata.channelId || contentRecord.author_handle,
@@ -1664,6 +1667,7 @@ const investigateLink = async (req, res) => {
         title: metadata.title || metadata.text?.substring(0, 100) || 'Investigated Post',
         description: metadata.description || metadata.text || '',
         content_url: resolvedUrl,
+        source_url: originalUrl,
         platform,
         author: metadata.author || metadata.channelTitle || 'Unknown',
         author_handle: metadata.author_handle || metadata.channelId,
@@ -1714,6 +1718,7 @@ const investigateLink = async (req, res) => {
       // it into this response, so the button was invisible until the page
       // re-fetched the alert list from the DB.
       content_url: alertRecord.content_url,
+      source_url: alertRecord.source_url || originalUrl,
       created_at: alertRecord.created_at,
       status: alertRecord.status,
       is_investigation: true,
@@ -1726,6 +1731,7 @@ const investigateLink = async (req, res) => {
         engagement: metadata.metrics || metadata.statistics,
         url: resolvedUrl,
         content_url: contentRecord?.content_url || resolvedUrl,
+        source_url: contentRecord?.source_url || originalUrl,
         ...(platform === 'facebook' && metadata.original_url ? {
           original_url: metadata.original_url,
           canonical_url: metadata.canonical_url || resolvedUrl,

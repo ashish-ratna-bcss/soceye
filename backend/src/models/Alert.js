@@ -111,6 +111,12 @@ const alertSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  // Original, pre-canonicalization URL (see Content.source_url). Preserved so
+  // escalation never has to reconstruct or guess a Facebook post URL.
+  source_url: {
+    type: String,
+    default: ''
+  },
   platform: {
     type: String,
     enum: ['youtube', 'x', 'instagram', 'facebook'],

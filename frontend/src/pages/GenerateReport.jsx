@@ -156,7 +156,10 @@ const GenerateReport = () => {
                 setProfileUrl(edits.profileUrl || reportData?.target_user_details?.profile_url || (platform === 'X' ? `https://x.com/${handle}` : `https://${platform.toLowerCase()}.com/${handle}`));
 
                 setPostHeader(edits.postHeader || `Alleged Post/Tweet URL`);
-                setContentUrl(edits.contentUrl || alertData.content_url || '#');
+                // content_url is the verified/canonical link; source_url is what was
+                // originally submitted. Never reconstructed here — both come straight
+                // from the alert record.
+                setContentUrl(edits.contentUrl || alertData.content_url || alertData.source_url || '#');
 
                 const isRep = (contentData?.is_repost === true);
                 setIsRepost(isRep);

@@ -30,6 +30,14 @@ const contentSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  // The URL exactly as originally submitted/ingested, before canonicalization
+  // (e.g. a Facebook /share/v/... link). Never overwritten by the resolver,
+  // so escalation always has an unfabricated fallback if content_url's
+  // canonical resolution is ever wrong or unverifiable.
+  source_url: {
+    type: String,
+    default: ''
+  },
   text: {
     type: String,
     required: true,

@@ -47,6 +47,13 @@ const createReportFromAlert = async (alertId) => {
 
     const serialNumber = await generateSerialNumber(alert.platform);
 
+    // Platform-correct profile domain — this previously hardcoded x.com, so
+    // every Facebook/Instagram/YouTube escalation report pointed at a fake
+    // x.com profile URL.
+    const PROFILE_DOMAIN = { x: 'x.com', facebook: 'facebook.com', instagram: 'instagram.com', youtube: 'youtube.com' };
+    const profileDomain = PROFILE_DOMAIN[alert.platform] || 'x.com';
+    const profileHandle = (content?.author_handle || alert.author || '').replace('@', '');
+
     const reportData = {
         serial_number: serialNumber,
         alert_id: alertId,
@@ -54,7 +61,7 @@ const createReportFromAlert = async (alertId) => {
         target_user_details: {
             name: alert.author || 'Unknown',
             handle: content?.author_handle || alert.author,
-            profile_url: `https://x.com/${(content?.author_handle || alert.author).replace('@', '')}`,
+            profile_url: `https://${profileDomain}/${profileHandle}`,
             avatar_url: content?.original_author_avatar || '',
             is_verified: false // Source model would have this
         },

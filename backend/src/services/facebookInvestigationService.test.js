@@ -114,6 +114,50 @@ const main = async () => {
     assert.ok(result.metadata.media.length > 0);
   });
 
+  await run('client case: /share/v/ video never verifies into a fabricated /posts/<pfbid> URL', async () => {
+    // Reproduces the reported bug: https://www.facebook.com/share/v/19NsK6UL8b/
+    // resolved (wrongly, pre-fix) to
+    // https://www.facebook.com/posts/pfbid0dFhL8eKBtezAQYVu5FA6BTK9wauERZa6eJsdpSHJ4nuUYZ9C2ZP7JfQEBJV9Y8rCl
+    // A /share/v/ link is a video/reel share: Facebook resolves it to an
+    // ownerless /<...>/videos/<numericId> permalink, never a pfbid.
+    const CLIENT_SHARE_URL = 'https://www.facebook.com/share/v/19NsK6UL8b/';
+    const CLIENT_FABRICATED_URL = 'https://www.facebook.com/posts/pfbid0dFhL8eKBtezAQYVu5FA6BTK9wauERZa6eJsdpSHJ4nuUYZ9C2ZP7JfQEBJV9Y8rCl';
+    const VIDEO_CANONICAL = 'https://www.facebook.com/somepage.official/videos/998877665544332211';
+    const videoText = 'Some video caption text long enough to pass the empty-content check.';
+
+    const result = await resolveFacebookInvestigation({
+      originalUrl: CLIENT_SHARE_URL,
+      canonicalUrl: VIDEO_CANONICAL,
+      contentId: '',
+      canonicalResolution: {
+        canonicalUrl: VIDEO_CANONICAL,
+        pfbid: '',
+        numericId: '998877665544332211',
+        ownerSlug: 'somepage.official',
+        resolvedVia: 'crawler_ua',
+        snapshot: {
+          canonicalUrl: VIDEO_CANONICAL,
+          pfbid: '',
+          numericId: '998877665544332211',
+          ownerSlug: 'somepage.official',
+          description: videoText,
+          title: videoText,
+          author: 'somepage.official',
+          media: [{ type: 'video', url: 'https://scontent.xx.fbcdn.net/v/example.mp4' }]
+        }
+      },
+      fetchPostFromApi: async () => null // RapidAPI unavailable, forces crawler path
+    });
+
+    assert.strictEqual(result.status, 'verified');
+    assert.strictEqual(result.canonical_url, VIDEO_CANONICAL);
+    assert.notStrictEqual(result.canonical_url, CLIENT_FABRICATED_URL);
+    assert.ok(!/^https:\/\/www\.facebook\.com\/posts\/pfbid/.test(result.canonical_url));
+    // Original link the analyst pasted must survive verification untouched.
+    assert.strictEqual(result.metadata.original_url, CLIENT_SHARE_URL);
+    assert.strictEqual(result.metadata.canonical_url, VIDEO_CANONICAL);
+  });
+
   await run('mismatched API result rejected', async () => {
     const result = await resolveFacebookInvestigation({
       originalUrl: SHARE_URL,
