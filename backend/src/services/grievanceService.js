@@ -168,16 +168,23 @@ const fetchTweetById = async (tweetId, cache = null, handle = null) => {
     let snapshot = null;
 
     // Attempt 1: provider-specific tweet endpoint (if available)
-    const endpointAttempts = [
-        // tweet-v2 is the only one of these Blugate's catalog actually covers
-        // (TWEET_DETAILS, param `pid`) — tried first so it takes the Blugate
-        // path when configured. The rest stay direct-RapidAPI-only fallbacks.
-        { path: '/tweet-v2', params: { pid: key } },
+    const endpointAttempts = [];
+    // tweet-v2 exists here ONLY to take the Blugate path (TWEET_DETAILS,
+    // param `pid`) when Blugate is configured — it must not be attempted at
+    // all when Blugate is off, since rapidRequestXForGrievance falls back to
+    // calling it directly against RapidAPI otherwise, which is an endpoint
+    // this file never called before and would silently change behavior for
+    // the no-Blugate case. This PR routes existing calls through Blugate; it
+    // must not alter behavior when Blugate isn't configured.
+    if (isBlugateConfigured()) {
+        endpointAttempts.push({ path: '/tweet-v2', params: { pid: key } });
+    }
+    endpointAttempts.push(
         { path: '/tweet', params: { id: key } },
         { path: '/tweet', params: { tweet_id: key } },
         { path: '/tweet-details', params: { id: key } },
         { path: '/tweet-details', params: { tweet_id: key } }
-    ];
+    );
 
     for (const attempt of endpointAttempts) {
         try {
