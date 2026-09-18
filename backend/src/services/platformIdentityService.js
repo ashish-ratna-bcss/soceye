@@ -2,6 +2,33 @@ const { google } = require('googleapis');
 const rapidApiXService = require('./rapidApiXService');
 const rapidApiInstagramService = require('./rapidApiInstagramService');
 const rapidApiFacebookService = require('./rapidApiFacebookService');
+const { isBlugateConfigured } = require('./blugate/blugate.http');
+const callYouTubeApi = require('./blugate/youtube/blugate.youtube.api_client');
+
+// googleapis SDK params use arrays for repeatable fields (`part`, `id`,
+// `type`). Blugate proxies the raw YouTube Data API v3 REST endpoint, which
+// expects a flat comma-separated string for the same fields instead.
+const youtubeSdkParamsToRest = (params = {}) => {
+  const out = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null) continue;
+    out[key] = Array.isArray(value) ? value.join(',') : value;
+  }
+  return out;
+};
+
+// Routes through Blugate when configured (same official YouTube Data API v3
+// REST endpoints), otherwise falls through to the googleapis SDK call
+// unchanged. Returns a `{ data }` object either way, matching the SDK's
+// response shape, so every existing `response.data.x` access below keeps
+// working without modification.
+const callYouTubeViaBlugateOrSdk = async (endpointKey, params, sdkCall) => {
+  if (isBlugateConfigured()) {
+    const data = await callYouTubeApi(endpointKey, youtubeSdkParamsToRest(params));
+    return { data };
+  }
+  return sdkCall();
+};
 
 const isLikelyYouTubeChannelId = (value = '') => /^UC[A-Za-z0-9_-]{20,}$/.test(String(value || '').trim());
 
@@ -117,7 +144,7 @@ const resolveYouTubeIdentity = async (identifier) => {
   }
 
   const apiKey = process.env.YOUTUBE_API_KEY;
-  if (!apiKey) {
+  if (!apiKey && !isBlugateConfigured()) {
     return { platformUserId: null, normalizedIdentifier: parsed.query || identifier, method: 'no-api-key' };
   }
 
@@ -126,7 +153,8 @@ const resolveYouTubeIdentity = async (identifier) => {
   const tryForHandle = async (handle) => {
     if (!handle) return null;
     try {
-      const response = await youtube.channels.list({ part: ['snippet'], forHandle: handle, maxResults: 1 });
+      const params = { part: ['snippet'], forHandle: handle, maxResults: 1 };
+      const response = await callYouTubeViaBlugateOrSdk('CHANNELS_LIST', params, () => youtube.channels.list(params));
       const item = response?.data?.items?.[0];
       if (!item?.id) return null;
       return {
@@ -144,7 +172,8 @@ const resolveYouTubeIdentity = async (identifier) => {
   const tryForUsername = async (username) => {
     if (!username) return null;
     try {
-      const response = await youtube.channels.list({ part: ['snippet'], forUsername: username, maxResults: 1 });
+      const params = { part: ['snippet'], forUsername: username, maxResults: 1 };
+      const response = await callYouTubeViaBlugateOrSdk('CHANNELS_LIST', params, () => youtube.channels.list(params));
       const item = response?.data?.items?.[0];
       if (!item?.id) return null;
       return {
@@ -162,7 +191,8 @@ const resolveYouTubeIdentity = async (identifier) => {
   const trySearch = async (query) => {
     if (!query) return null;
     try {
-      const searchRes = await youtube.search.list({ part: ['snippet'], q: query, type: ['channel'], maxResults: 1 });
+      const params = { part: ['snippet'], q: query, type: ['channel'], maxResults: 1 };
+      const searchRes = await callYouTubeViaBlugateOrSdk('SEARCH_LIST', params, () => youtube.search.list(params));
       const item = searchRes?.data?.items?.[0];
       const channelId = item?.snippet?.channelId || item?.id?.channelId;
       if (!channelId) return null;
@@ -345,7 +375,7 @@ const resolveYouTubeIdentityFromSource = async (source) => {
   const channelId = String(source?.platform_user_id || source?.identifier || '').trim();
   if (isLikelyYouTubeChannelId(channelId)) {
     const apiKey = process.env.YOUTUBE_API_KEY;
-    if (!apiKey) {
+    if (!apiKey && !isBlugateConfigured()) {
       return {
         platformUserId: channelId,
         normalizedIdentifier: channelId,
@@ -356,7 +386,8 @@ const resolveYouTubeIdentityFromSource = async (source) => {
 
     try {
       const youtube = google.youtube({ version: 'v3', auth: apiKey });
-      const response = await youtube.channels.list({ part: ['snippet'], id: [channelId], maxResults: 1 });
+      const params = { part: ['snippet'], id: [channelId], maxResults: 1 };
+      const response = await callYouTubeViaBlugateOrSdk('CHANNELS_LIST', params, () => youtube.channels.list(params));
       const item = response?.data?.items?.[0];
       const custom = item?.snippet?.customUrl || null;
       const normalizedHandle = custom ? (custom.startsWith('@') ? custom : `@${custom}`) : (source?.identifier || channelId);

@@ -14,6 +14,9 @@ const { getActiveEvents, autoArchiveEndedEvents, scanEventOnce, shouldPollEvent 
 const { checkAndCreateVelocityAlerts, createNewPostAlert, updateEngagementHistory, checkVelocity } = require('./velocityAlertService');
 const { queueUrlEnrichment } = require('./urlEnrichmentService');
 const rapidApiInstagramService = require('./rapidApiInstagramService');
+const { isBlugateConfigured } = require('./blugate/blugate.http');
+const blugateHealthState = require('./blugate/blugateHealthState');
+const callYouTubeApi = require('./blugate/youtube/blugate.youtube.api_client');
 const { archiveContentMedia, archiveTwitterMedia, archiveFacebookMedia } = require('./contentS3Service');
 const { enqueueMediaLocationExtraction } = require('./mediaLocationService');
 const logger = require('../utils/logger');
@@ -392,6 +395,32 @@ const extractAndFetchUrlContent = async (text) => {
   }
 };
 
+// googleapis SDK params use arrays for repeatable fields; this function
+// always passes plain comma-separated strings already, but this stays
+// defensive in case that changes. Blugate proxies the raw YouTube Data API
+// v3 REST endpoint 1:1, so the param shape must match the REST contract.
+const youtubeSdkParamsToRest = (params = {}) => {
+  const out = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null) continue;
+    out[key] = Array.isArray(value) ? value.join(',') : value;
+  }
+  return out;
+};
+
+// Routes through Blugate when configured (same official YouTube Data API v3
+// REST endpoints — see services/blugate/youtube/), otherwise falls through
+// to the googleapis SDK call unchanged. Returns a `{ data }` object either
+// way, matching the SDK's response shape, so every existing
+// `response.data.x` access below keeps working without modification.
+const callYouTubeViaBlugateOrSdk = async (endpointKey, params, sdkCall) => {
+  if (isBlugateConfigured()) {
+    const data = await callYouTubeApi(endpointKey, youtubeSdkParamsToRest(params));
+    return { data };
+  }
+  return sdkCall();
+};
+
 const monitorYoutubeSource = async (source, apiKey) => {
   let apiCalls = 0;
 
@@ -452,10 +481,12 @@ const monitorYoutubeSource = async (source, apiKey) => {
     let uploadsFromCache = Boolean(uploadsPlaylistId);
 
     const resolveUploadsPlaylistId = async () => {
-      const channelResponse = await youtube.channels.list({
-        part: 'contentDetails',
-        id: channelId
-      });
+      const channelsParams = { part: 'contentDetails', id: channelId };
+      const channelResponse = await callYouTubeViaBlugateOrSdk(
+        'CHANNELS_LIST',
+        channelsParams,
+        () => youtube.channels.list(channelsParams)
+      );
       apiCalls += 1;
       return channelResponse.data.items?.[0]?.contentDetails?.relatedPlaylists?.uploads || null;
     };
@@ -470,11 +501,12 @@ const monitorYoutubeSource = async (source, apiKey) => {
     }
 
     const listUploads = async () => {
-      const playlistResponse = await youtube.playlistItems.list({
-        part: 'contentDetails',
-        playlistId: uploadsPlaylistId,
-        maxResults: 10
-      });
+      const playlistParams = { part: 'contentDetails', playlistId: uploadsPlaylistId, maxResults: 10 };
+      const playlistResponse = await callYouTubeViaBlugateOrSdk(
+        'PLAYLIST_ITEMS_LIST',
+        playlistParams,
+        () => youtube.playlistItems.list(playlistParams)
+      );
       apiCalls += 1;
       return playlistResponse.data.items || [];
     };
@@ -510,10 +542,12 @@ const monitorYoutubeSource = async (source, apiKey) => {
 
     // One batched videos.list (1 unit for up to 50 ids) replaces the previous
     // per-video call, and carries the statistics needed to refresh engagement.
-    const detailsResponse = await youtube.videos.list({
-      part: 'snippet,statistics',
-      id: videoIds.join(',')
-    });
+    const videosParams = { part: 'snippet,statistics', id: videoIds.join(',') };
+    const detailsResponse = await callYouTubeViaBlugateOrSdk(
+      'VIDEOS_LIST',
+      videosParams,
+      () => youtube.videos.list(videosParams)
+    );
     apiCalls += 1;
 
     const videoById = new Map((detailsResponse.data.items || []).map((v) => [v.id, v]));
@@ -642,7 +676,7 @@ const { syncRetweetRelationshipsForSource } = require('./retweetNetworkService')
 const monitorXSource = async (source) => {
   try {
     let tweets = [];
-    const useRapidApi = !!process.env.RAPIDAPI_KEY;
+    const useRapidApi = rapidApiXService.isXRapidApiAvailable();
     const useOfficialApi = !!process.env.X_BEARER_TOKEN;
 
     let userData = null;
@@ -983,11 +1017,10 @@ const monitorXSource = async (source) => {
 
 const monitorInstagramSource = async (source, accessToken) => {
   try {
-    const igKeys = rapidApiInstagramService.getInstagramRapidApiKeys();
-    if (!igKeys || igKeys.length === 0) {
-      logger.info('[Instagram Monitor] ⚠️ No RapidAPI Instagram keys configured. Skipping scan.');
+    if (!rapidApiInstagramService.isInstagramApiAvailable()) {
+      logger.info('[Instagram Monitor] ⚠️ No RapidAPI Instagram key or Blugate configured. Skipping scan.');
       // Do NOT update last_checked — keys not configured is not a successful check
-      return scanResult([], SCAN_OUTCOME.AUTH_CONFIG, 'no RapidAPI Instagram key configured');
+      return scanResult([], SCAN_OUTCOME.AUTH_CONFIG, 'no RapidAPI Instagram key or Blugate configured');
     }
 
     // ─── Handle Normalization ──────────────────────────────────────────────
@@ -2523,7 +2556,11 @@ const scanSourceOnce = async (source, options = {}) => {
 
   let result = scanResult([]);
   if (source.platform === 'youtube') {
-    result = youtubeApiKey
+    // Blugate proxies the official YouTube Data API v3 with its own key, so
+    // a direct YOUTUBE_API_KEY isn't required once Blugate is configured —
+    // this must mirror the same OR as callYouTubeViaBlugateOrSdk() above, or
+    // youtube monitoring is blocked here before Blugate ever gets a chance.
+    result = (youtubeApiKey || isBlugateConfigured())
       ? await monitorYoutubeSource(source, youtubeApiKey)
       : scanResult([], SCAN_OUTCOME.AUTH_CONFIG, 'YouTube API key not configured');
   } else if (source.platform === 'x') {
@@ -3207,17 +3244,34 @@ const startMonitoring = async () => {
 
       // Platform-specific startup logging
       if (platform === 'x') {
-        logger.info(`[Monitor:x] RAPIDAPI_KEY: ${rapidApiKey?.substring(0, 15)}...`);
+        logger.info(`[Monitor:x] RAPIDAPI_KEY: ${rapidApiKey?.substring(0, 15)}... | via_blugate: ${rapidApiXService.isXRapidApiAvailable() && !rapidApiKey}`);
       }
       if (platform === 'instagram') {
         const igKeys = rapidApiInstagramService.getInstagramRapidApiKeys();
-        logger.info(`[Monitor:instagram] Keys available this cycle: ${igKeys.length}`);
+        logger.info(`[Monitor:instagram] Direct keys available: ${igKeys.length} | api_available (incl. blugate): ${rapidApiInstagramService.isInstagramApiAvailable()}`);
       }
 
       // Check if monitoring is enabled
       const monitoringEnabled = settings.api_config?.monitoring?.enabled !== false;
       if (!monitoringEnabled) {
         nextCheckSeconds = 300; // check again in 5 min in case user re-enables
+        return;
+      }
+
+      // ─── BluGate account-wide access gate ──────────────────────────
+      // A 401 from BluGate means the client account itself lost access
+      // (quota exhausted / suspended) — this applies to every platform,
+      // not just the one that happened to see it. Pause all platform
+      // loops immediately, but recheck often: the next real scan attempt
+      // IS the recovery probe — the first one that comes back 200 flips
+      // blugateHealthState back to healthy and monitoring resumes.
+      if (isBlugateConfigured() && blugateHealthState.isUnauthorized()) {
+        nextCheckSeconds = 60;
+        logger.warn(
+          `[Monitor:${platform}] ⛔ BluGate access unauthorized (401 since ` +
+          `${blugateHealthState.getState().since?.toISOString()}) — skipping cycle; ` +
+          `retrying in ${nextCheckSeconds}s until access is restored.`
+        );
         return;
       }
 

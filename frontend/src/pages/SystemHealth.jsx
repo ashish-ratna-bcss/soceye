@@ -69,7 +69,10 @@ const SystemHealth = () => {
     );
   };
 
-  const getApiStatus = (quotaData) => {
+  const getApiStatus = (quotaData, gatewaySuspended) => {
+    if (gatewaySuspended) {
+      return { status: 'offline', message: 'API limit exceeded.' };
+    }
     if (!quotaData) return { status: 'offline', message: 'No data from backend.' };
     if (quotaData.available === false) return { status: 'offline', message: 'API keys exhausted or invalid.' };
     if (quotaData.remaining !== undefined && quotaData.remaining !== 'Unknown' && Number(quotaData.remaining) <= 0) {
@@ -121,6 +124,18 @@ const SystemHealth = () => {
           Refresh
         </button>
       </div>
+
+      {healthData?.blugate?.status === 'unauthorized' && (
+        <div className="mb-6 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 dark:border-red-900/50 dark:bg-red-900/20 p-4">
+          <ShieldAlert className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
+          <div>
+            <h3 className="text-sm font-semibold text-red-800 dark:text-red-300">API limit exceeded</h3>
+            <p className="text-xs text-red-700 dark:text-red-400 mt-0.5">
+              {healthData.blugate.message} Content monitoring is paused for all platforms until access is restored.
+            </p>
+          </div>
+        </div>
+      )}
 
       {!healthData && loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -189,25 +204,25 @@ const SystemHealth = () => {
               </h2>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              <StatusCard 
+              <StatusCard
                 title="BCSS Instagram"
                 icon={Activity}
-                statusObj={getApiStatus(healthData.quotas.instagram)}
+                statusObj={getApiStatus(healthData.quotas.instagram, healthData.blugate?.status === 'unauthorized')}
               />
-              <StatusCard 
+              <StatusCard
                 title="BCSS Facebook"
                 icon={Activity}
-                statusObj={getApiStatus(healthData.quotas.facebook)}
+                statusObj={getApiStatus(healthData.quotas.facebook, healthData.blugate?.status === 'unauthorized')}
               />
-              <StatusCard 
+              <StatusCard
                 title="BCSS X (Twitter)"
                 icon={Activity}
-                statusObj={getApiStatus(healthData.quotas.x)}
+                statusObj={getApiStatus(healthData.quotas.x, healthData.blugate?.status === 'unauthorized')}
               />
-              <StatusCard 
+              <StatusCard
                 title="Google YouTube"
                 icon={Activity}
-                statusObj={getApiStatus(healthData.quotas.youtube)}
+                statusObj={getApiStatus(healthData.quotas.youtube, healthData.blugate?.status === 'unauthorized')}
               />
             </div>
           </section>

@@ -1,6 +1,39 @@
 const axios = require('axios');
 const Counter = require('../models/Counter');
 const logger = require('../utils/logger');
+const { isBlugateConfigured } = require('./blugate/blugate.http');
+const callXApi = require('./blugate/x/blugate.x.api_client');
+
+// Maps this service's literal RapidAPI paths to the Blugate X endpoint
+// catalog keys (services/blugate/x/blugate.x.endpoints.js). Blugate is a
+// transparent pass-through to the same provider (twitter241) — paths are
+// identical, only the base URL + auth headers change. Endpoints this
+// service calls that aren't in the catalog (trends, lists, community,
+// autocomplete, etc. — used only by the generic /api/x/rapid/:alias proxy)
+// simply fall through to direct RapidAPI, unaffected.
+const X_PATH_TO_BLUGATE_KEY = {
+    'user': 'USER',
+    'user-by-id': 'USER_BY_ID',
+    'user-v2': 'USER_V2',
+    'get-users': 'GET_USERS',
+    'user-tweets': 'USER_TWEETS',
+    'user-tweets-v2': 'USER_TWEETS_V2',
+    'search': 'SEARCH',
+    'tweet-v2': 'TWEET_DETAILS',
+    'tweet': 'TWEET',
+    'tweet-details': 'TWEET_DETAILS_LEGACY',
+    'retweets': 'RETWEETS',
+    'comments-v2': 'COMMENTS',
+    'quotes': 'QUOTES'
+};
+
+// True when X is reachable EITHER via a direct RapidAPI key OR via Blugate.
+// Callers that pre-flight-check "is X configured" before ever calling into
+// this service (monitorXSource's useRapidApi, Global Search, Glance search)
+// must use this — not `!!process.env.RAPIDAPI_KEY` directly — or they skip
+// this service entirely before the Blugate routing inside rapidRequestX
+// ever gets a chance to run.
+const isXRapidApiAvailable = () => Boolean(process.env.RAPIDAPI_KEY) || isBlugateConfigured();
 
 const getRapidApiHeaders = () => {
     const apiKey = process.env.RAPIDAPI_KEY;
@@ -17,7 +50,39 @@ const getRapidApiHeaders = () => {
 };
 
 
+// Every call site in this file (rapidGet + the bespoke inline axios calls
+// used by fetchUserTweets/searchTweets/etc.) funnels through rapidRequestX,
+// so intercepting here covers all of them uniformly.
+const extractXPathFromUrl = (url) => {
+    try {
+        return new URL(url).pathname.replace(/^\/+/, '');
+    } catch {
+        return '';
+    }
+};
+
 const rapidRequestX = async (config, retryCount = 0) => {
+    // Route through Blugate when fully configured — same provider (twitter241),
+    // same paths, only the base URL + auth headers differ. No Blugate config,
+    // or a path outside X_PATH_TO_BLUGATE_KEY (e.g. trends/lists/community via
+    // the generic proxy) → falls straight through to direct RapidAPI below,
+    // unchanged. A Blugate-side error is NOT silently retried against direct
+    // RapidAPI — that would mask real Blugate problems during testing.
+    const blugateEndpointKey = X_PATH_TO_BLUGATE_KEY[extractXPathFromUrl(config?.url)];
+    if (blugateEndpointKey && isBlugateConfigured()) {
+        try {
+            const data = await callXApi(blugateEndpointKey, config?.params || config?.data || {});
+            _incrementCalls();
+            return { data, status: 200, headers: {} };
+        } catch (error) {
+            _incrementCalls();
+            // error.response is preserved by blugate.http's formatAxiosError,
+            // so every existing `error?.response?.status === 429` check
+            // downstream (isRateError, callers) keeps working unchanged.
+            throw error;
+        }
+    }
+
     const maxRetries = Math.max(1, parseInt(process.env.RAPIDAPI_X_MAX_RETRIES || '3', 10));
     const baseDelay = Math.max(1000, parseInt(process.env.RAPIDAPI_X_RETRY_DELAY_MS || '4000', 10));
     const requestTimeout = Math.max(15000, parseInt(process.env.RAPIDAPI_X_TIMEOUT_MS || '45000', 10));
@@ -351,6 +416,9 @@ const fetchUserProfileById = async (userId) => {
         if (!cleanUserId) return null;
 
         const host = (process.env.RAPIDAPI_HOST || 'twitter241.p.rapidapi.com').trim();
+        // Every attempt below is Blugate-routed (see X_PATH_TO_BLUGATE_KEY) —
+        // Blugate passes these through to the same upstream provider, so the
+        // full fallback chain is preserved with no direct RapidAPI calls.
         const endpointAttempts = [
             {
                 path: 'get-users',
@@ -536,6 +604,7 @@ const fetchUserTweets = async (handle, limit = 20) => {
         const host = (process.env.RAPIDAPI_HOST || 'twitter241.p.rapidapi.com').trim();
         const perPage = Math.min(limit, 40); // per-page count sent to API
         const maxPages = Math.min(Math.ceil(limit / 20), 5); // max pagination rounds (cap at 5 to avoid runaway)
+        // Both shapes are Blugate-routed (USER_TWEETS / USER_TWEETS_V2).
         const tweetEndpointAttempts = [
             { path: 'user-tweets', paramKey: 'user' },
             { path: 'user-tweets-v2', paramKey: 'user' },
@@ -799,6 +868,7 @@ const fetchAllUserTweetsSince = async (handle, sinceDate, maxTweets = 200) => {
         }
 
         const host = (process.env.RAPIDAPI_HOST || 'twitter241.p.rapidapi.com').trim();
+        // Both shapes are Blugate-routed (USER_TWEETS / USER_TWEETS_V2).
         const endpoints = [
             { path: 'user-tweets', paramKey: 'user' },
             { path: 'user-tweets-v2', paramKey: 'user' },
@@ -1756,6 +1826,9 @@ const fetchTweetDetail = async (tweetId, options = {}) => {
     try {
         log(`Fetching details for tweet ${key}...`);
 
+        // All three shapes are Blugate-routed (TWEET_DETAILS / TWEET /
+        // TWEET_DETAILS_LEGACY in blugate.x.endpoints.js) — the full fallback
+        // chain is preserved with no direct RapidAPI calls.
         const endpointAttempts = [
             { path: '/tweet-v2', params: { pid: key } },
             { path: '/tweet', params: { pid: key } },
@@ -2102,6 +2175,7 @@ module.exports = {
     fetchTweetRepliers,
     fetchTweetQuoteTweeters,
     rapidGet,
-    normalizeTweet
+    normalizeTweet,
+    isXRapidApiAvailable
 };
 

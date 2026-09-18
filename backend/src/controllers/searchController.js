@@ -1050,7 +1050,7 @@ async function fetchPostByUrl(req, res) {
                 }
             }
             // If still not found, try scraping
-            if (!tweet && (!process.env.RAPIDAPI_KEY && !process.env.X_BEARER_TOKEN)) {
+            if (!tweet && (!rapidApiXService.isXRapidApiAvailable() && !process.env.X_BEARER_TOKEN)) {
                 try {
                     const { scrapeProfile, getHealthyAccount } = require('../services/scraperService');
                     if (authorHandle) {
