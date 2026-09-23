@@ -15,11 +15,16 @@ const isFacebookShareUrl = (value) => /\/share\/(?:v|r|p)\//i.test(String(value 
 const IDENTITY_QUERY_KEYS = ['id', 'story_fbid', 'fbid', 'v', 'video_id'];
 
 // First path segment values that are Facebook routes, not page/profile owners.
+// The auth routes matter as much as the content ones: Facebook answers some
+// share links with a login wall, and if 'login' counted as an owner that
+// snapshot scored 2 and beat the real owner-less /reel/<id>/ answer (score 1),
+// so a valid reel resolved to facebook.com/login and failed verification.
 const NON_OWNER_SEGMENTS = new Set([
   'reel', 'reels', 'watch', 'video', 'videos', 'posts', 'post', 'photo', 'photos',
   'permalink.php', 'story.php', 'share', 'groups', 'events', 'marketplace', 'media',
   'pages', 'people', 'p', 'story', 'l.php', 'login.php', 'plugins', 'ajax', 'search',
-  'privacy', 'help', 'policies', 'watchparty', 'gaming', 'live'
+  'privacy', 'help', 'policies', 'watchparty', 'gaming', 'live',
+  'login', 'checkpoint', 'recover', 'authentication', 'home.php', 'logout.php'
 ]);
 
 const safeParseUrl = (value) => {
