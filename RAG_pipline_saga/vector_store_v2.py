@@ -176,6 +176,17 @@ class VectorStore:
             
         self._hot_count = idx
         logger.info("Hot cache rebuilt for %s: %d chunks.", today, self._hot_count)
+    # -- api compatibility ---------------------------------------------------
+    
+    def total_chunks(self) -> int:
+        col = self.connect()
+        return col.estimated_document_count()
+
+    def refresh_cache(self):
+        pass
+
+    def invalidate_cache(self):
+        pass
 
     # -- ingestion / dynamic updates -----------------------------------------
 
@@ -366,51 +377,84 @@ class VectorStore:
             self._check_rollover()
             
         results = []
+        date_from, date_to = None, None
         
+        try:
+            import intent
+            if query_text:
+                date_from, date_to = intent.extract_dates(query_text)
+        except Exception:
+            pass
+
         if explicit_date:
-            if explicit_date == self._hot_date and not self._hot_overflow:
-                results = self._search_hot_cache(q, top_k)
-            else:
-                results = self._search_historical(q, top_k, explicit_date)
-                
-            if not results:
-                results = self._search_server_side(query_vector, top_k, query_text, source_collection, explicit_date)
-                
-            return results
+            date_from = date_to = explicit_date
             
-        else:
-            # 1. Today Hot Cache
-            if not self._hot_overflow:
-                results = self._search_hot_cache(q, top_k)
+        if date_from and date_to:
+            from datetime import datetime, timedelta
+            try:
+                start_dt = datetime.strptime(date_from, "%Y-%m-%d")
+                end_dt = datetime.strptime(date_to, "%Y-%m-%d")
                 
-            # 2. Historical Warm Cache (if insufficient)
-            if len(results) < top_k:
-                hist_dates = self._get_all_historical_dates()
-                for d in hist_dates:
-                    if len(results) >= top_k: break
-                    hist_res = self._search_historical(q, top_k, d)
-                    results.extend(hist_res)
-                    
-                # Deduplicate and sort
-                seen = set()
-                deduped = []
-                for r in sorted(results, key=lambda x: x["score"], reverse=True):
-                    cid = r["metadata"].get("chunk_id")
-                    if cid not in seen:
-                        seen.add(cid)
-                        deduped.append(r)
-                results = deduped[:top_k]
+                target_dates = []
+                curr = start_dt
+                while curr <= end_dt:
+                    target_dates.append(curr.strftime("%Y-%m-%d"))
+                    curr += timedelta(days=1)
                 
-            # 3. Server-Side Fallback
-            if len(results) < top_k:
-                mongo_results = self._search_server_side(query_vector, top_k, query_text, source_collection)
-                seen = {r["metadata"]["chunk_id"] for r in results}
-                for mr in mongo_results:
-                    if mr["metadata"]["chunk_id"] not in seen:
-                        results.append(mr)
-                results = sorted(results, key=lambda x: x["score"], reverse=True)[:top_k]
+                for d in target_dates:
+                    if d == self._hot_date and not self._hot_overflow:
+                        res = self._search_hot_cache(q, top_k)
+                        results.extend(res)
+                    else:
+                        res = self._search_historical(q, top_k, d)
+                        results.extend(res)
                 
-            return results
+                if not results:
+                    results = self._search_server_side(query_vector, top_k, query_text, source_collection, explicit_date=date_from, date_to=date_to)
+                else:
+                    seen = set()
+                    deduped = []
+                    for r in sorted(results, key=lambda x: x["score"], reverse=True):
+                        cid = r["metadata"]["chunk_id"]
+                        if cid not in seen:
+                            seen.add(cid)
+                            deduped.append(r)
+                    results = deduped[:top_k]
+                return results
+                
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning("Date routing failed: %s", e)
+                
+        # NO-DATE behavior
+        if not self._hot_overflow:
+            results = self._search_hot_cache(q, top_k)
+            
+        if len(results) < top_k:
+            hist_dates = self._get_all_historical_dates()
+            for d in hist_dates:
+                if len(results) >= top_k: break
+                hist_res = self._search_historical(q, top_k, d)
+                results.extend(hist_res)
+                
+            seen = set()
+            deduped = []
+            for r in sorted(results, key=lambda x: x["score"], reverse=True):
+                cid = r["metadata"]["chunk_id"]
+                if cid not in seen:
+                    seen.add(cid)
+                    deduped.append(r)
+            results = deduped[:top_k]
+            
+        if len(results) < top_k:
+            mongo_results = self._search_server_side(query_vector, top_k, query_text, source_collection)
+            seen = {r["metadata"]["chunk_id"] for r in results}
+            for mr in mongo_results:
+                if mr["metadata"]["chunk_id"] not in seen:
+                    results.append(mr)
+            results = sorted(results, key=lambda x: x["score"], reverse=True)[:top_k]
+            
+        return results
 
     def _search_hot_cache(self, q: np.ndarray, top_k: int) -> List[Dict]:
         with self._lock:
@@ -465,6 +509,7 @@ class VectorStore:
         query_text: Optional[str] = None,
         source_collection: Optional[str] = None,
         explicit_date: Optional[str] = None,
+        date_to: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         col = self.connect()
         pipeline = []
@@ -478,7 +523,11 @@ class VectorStore:
         if explicit_date:
             try:
                 start = datetime.strptime(explicit_date, "%Y-%m-%d")
-                end = datetime(start.year, start.month, start.day, 23, 59, 59, 999999)
+                if date_to:
+                    end_dt = datetime.strptime(date_to, "%Y-%m-%d")
+                    end = datetime(end_dt.year, end_dt.month, end_dt.day, 23, 59, 59, 999999)
+                else:
+                    end = datetime(start.year, start.month, start.day, 23, 59, 59, 999999)
                 match_stage["metadata.source_created_at"] = {"$gte": start, "$lte": end}
             except ValueError:
                 pass
