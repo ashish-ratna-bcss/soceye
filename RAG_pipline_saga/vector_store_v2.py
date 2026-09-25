@@ -2,7 +2,6 @@ import os
 import sqlite3
 import threading
 import json
-import psutil
 import time
 import gc
 from datetime import datetime, timezone
@@ -78,15 +77,15 @@ class HotCacheManager:
             self.release(lru_col)
 
         # Check process RSS emergency guard
-        rss = psutil.Process(os.getpid()).memory_info().rss
+        rss = 0  # psutil removed as per instructions
         while rss + required_bytes > max_bytes:
             if not self.caches:
                 break
             lru_col = min(self.caches.keys(), key=lambda k: self.caches[k]["last_access"])
             self.release(lru_col)
-            rss = psutil.Process(os.getpid()).memory_info().rss
+        rss = 0  # psutil removed as per instructions
             
-        rss = psutil.Process(os.getpid()).memory_info().rss
+        rss = 0  # psutil removed as per instructions
         if (self.global_memory_bytes + required_bytes > max_bytes) or \
            (self.global_item_count + required_items > HOT_CACHE_MAX_ITEMS) or \
            (rss + required_bytes > max_bytes):
